@@ -21,19 +21,19 @@ const STATUS_CONFIG: Record<
     className: "bg-amber-500/15 text-amber-500 border border-amber-500/30",
   },
   ready: {
-    label: "Ready",
+    label: "Ready & Packed",
     variant: "default",
-    className: "bg-indigo-600 hover:bg-indigo-700 text-white",
+    className: "bg-indigo-600 hover:bg-indigo-700 text-white font-medium",
   },
   porter_booked: {
-    label: "Porter Dispatched",
+    label: "Dispatched",
     variant: "default",
     className: "bg-emerald-600 hover:bg-emerald-700 text-white font-medium",
   },
   porter_failed: {
-    label: "Porter Booking Failed",
-    variant: "destructive",
-    className: "bg-rose-600 animate-pulse text-white font-semibold",
+    label: "Dispatch Pending",
+    variant: "secondary",
+    className: "bg-amber-500/15 text-amber-400 border border-amber-500/30",
   },
   out_for_delivery: {
     label: "Out for Delivery",

@@ -158,7 +158,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                     ? "Kitchen Pickup"
                     : bill.totals.deliveryFee > 0
                     ? `₹${bill.totals.deliveryFee}`
-                    : "Borzo Porter (Separate)"}
+                    : "Free"}
                 </span>
               </div>
               {bill.totals.discount > 0 && (

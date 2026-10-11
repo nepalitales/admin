@@ -238,7 +238,7 @@ export default function DashboardPage() {
       items: [
         {
           title: "Live Orders Board",
-          description: "Incoming live orders pipeline, cooking timers, receipts & Borzo dispatching.",
+          description: "Incoming live orders pipeline, cooking timers, receipts & delivery dispatching.",
           href: "/orders",
           icon: ShoppingBag,
           color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
@@ -423,11 +423,11 @@ export default function DashboardPage() {
               <Sparkles className="h-3.5 w-3.5 text-amber-400" />
             </div>
             <h3 className="text-base sm:text-lg font-bold">
-              Real-Time Kitchen Orders & Automated Borzo Delivery System
+              Real-Time Kitchen Orders & Delivery Management
             </h3>
             <p className="text-muted-foreground text-xs max-w-2xl leading-relaxed">
               Customer orders appear in real time via live push stream. Advance orders through Cooking,
-              Ready, and trigger automatic courier pickups to deliver authentic momos promptly.
+              Ready, and Delivery to serve authentic authentic delicacies promptly.
             </p>
           </div>
 

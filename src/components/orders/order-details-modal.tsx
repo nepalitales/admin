@@ -31,7 +31,6 @@ interface OrderDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   onPrintBill?: (orderId: string) => void;
   onCancelOrder?: (order: Order) => void;
-  onRetryPorter?: (orderId: string) => void;
   onUpdateStatus?: (orderId: string, status: any) => void;
 }
 
@@ -41,7 +40,6 @@ export function OrderDetailsModal({
   onOpenChange,
   onPrintBill,
   onCancelOrder,
-  onRetryPorter,
   onUpdateStatus,
 }: OrderDetailsModalProps) {
   if (!order) return null;
@@ -102,31 +100,43 @@ export function OrderDetailsModal({
                 className="gap-1.5 text-xs h-8 bg-indigo-600 hover:bg-indigo-700 text-white"
                 onClick={() => onUpdateStatus(order.id, "ready")}
               >
-                <Truck className="h-3.5 w-3.5" />
-                {isPickup ? "Mark ready for pickup" : "Mark Ready & Auto-Dispatch Porter"}
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {isPickup ? "Mark Ready for Pickup" : "Mark Ready"}
               </Button>
             )}
 
-            {isPickup && order.status === "ready" && onUpdateStatus && (
+            {order.status === "ready" && onUpdateStatus && (
+              <>
+                {!isPickup && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-1.5 text-xs h-8 bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30"
+                    onClick={() => onUpdateStatus(order.id, "out_for_delivery")}
+                  >
+                    <Truck className="h-3.5 w-3.5" />
+                    Out for Delivery
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  className="gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => onUpdateStatus(order.id, "delivered")}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {isPickup ? "Mark Collected" : "Mark Delivered"}
+                </Button>
+              </>
+            )}
+
+            {(order.status === "out_for_delivery" || order.status === "porter_booked") && onUpdateStatus && (
               <Button
                 size="sm"
                 className="gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => onUpdateStatus(order.id, "delivered")}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Mark collected
-              </Button>
-            )}
-
-            {order.status === "porter_failed" && onRetryPorter && !isPickup && (
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-1.5 text-xs h-8"
-                onClick={() => onRetryPorter(order.id)}
-              >
-                <RotateCw className="h-3.5 w-3.5" />
-                Retry Porter Booking
+                Mark Delivered
               </Button>
             )}
 
@@ -228,7 +238,7 @@ export function OrderDetailsModal({
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>{isPickup ? "Pickup" : "Delivery Fee"}</span>
-                  <span>{isPickup ? "Free" : (order.deliveryFee > 0 ? `₹${order.deliveryFee}` : "Borzo Porter (Separate)")}</span>
+                  <span>{isPickup ? "Free" : (order.deliveryFee > 0 ? `₹${order.deliveryFee}` : "Free")}</span>
                 </div>
                 {order.discount > 0 && (
                   <div className="flex justify-between text-emerald-400">
@@ -244,35 +254,18 @@ export function OrderDetailsModal({
             </div>
           </div>
 
-          {/* Borzo Delivery Status Card */}
-          {!isPickup && order.borzo && (
+          {/* Fulfillment Info */}
+          {!isPickup && (
             <div className="rounded-lg border border-border p-3.5 bg-card space-y-2">
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Truck className="h-3.5 w-3.5" /> Borzo Porter Logistics
+                  <Truck className="h-3.5 w-3.5" /> Doorstep Delivery
                 </span>
-                <span className="font-mono text-primary">ID: {order.borzo.borzoOrderName || "Pending"}</span>
+                <span className="font-mono text-primary uppercase">{order.status.replace(/_/g, " ")}</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground">Courier Status:</span>{" "}
-                  <span className="font-medium capitalize">{order.borzo.status || "N/A"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Delivery Cost:</span>{" "}
-                  <span className="font-medium">
-                    {order.borzo.deliveryFee && Number(order.borzo.deliveryFee) > 0
-                      ? `₹${order.borzo.deliveryFee}`
-                      : "Calculated by Borzo"}
-                  </span>
-                </div>
-              </div>
-              {order.borzo.error && (
-                <div className="text-xs text-rose-400 bg-rose-500/10 p-2 rounded border border-rose-500/20 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{order.borzo.error}</span>
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Manual dispatch mode active. Update status above as the kitchen and rider progress.
+              </p>
             </div>
           )}
 

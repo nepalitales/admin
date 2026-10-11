@@ -53,14 +53,7 @@ export function useOrderEvents(options: UseOrderEventsOptions = {}) {
             duration: 5000,
           });
         } else if (type === "porter_status_updated") {
-          if (data.status === "porter_failed") {
-            toast.error(`Porter Dispatch Failed for #${data.orderNumber}`, {
-              description: "Please click 'Retry Porter' or call customer.",
-              duration: 8000,
-            });
-          } else {
-            toast.info(`Porter update for #${data.orderNumber}: ${data.status}`);
-          }
+          toast.info(`Delivery update for #${data.orderNumber}: ${data.status}`);
         }
       }
 

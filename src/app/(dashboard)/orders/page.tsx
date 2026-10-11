@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   getOrders,
   updateOrderStatus,
-  retryPorterBooking,
   autoPrepareOrders,
   type Order,
   type OrderStatus,
@@ -107,27 +106,10 @@ export default function OrdersPage() {
     setActionLoadingId(orderId);
     try {
       const res = await updateOrderStatus(orderId, targetStatus);
-      if (res.porterFailed) {
-        toast.error(res.message, { duration: 7000 });
-      } else {
-        toast.success(res.message || `Order status updated to ${targetStatus}`);
-      }
+      toast.success(res.message || `Order status updated to ${targetStatus}`);
       fetchOrders(true);
     } catch (err: any) {
       toast.error("Failed to update status: " + err.message);
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleRetryPorter = async (orderId: string) => {
-    setActionLoadingId(orderId);
-    try {
-      const res = await retryPorterBooking(orderId);
-      toast.success(res.message || "Borzo Porter booking succeeded on retry!");
-      fetchOrders(true);
-    } catch (err: any) {
-      toast.error("Retry Porter failed: " + err.message);
     } finally {
       setActionLoadingId(null);
     }
@@ -164,9 +146,9 @@ export default function OrdersPage() {
       bg: "bg-amber-500/10 border-amber-500/20",
     },
     {
-      title: "Ready / Dispatched",
+      title: "Ready for Dispatch / Pickup",
       value: counts.ready,
-      desc: "Porter courier booked",
+      desc: "Packed & email notified",
       color: "text-emerald-400",
       bg: "bg-emerald-500/10 border-emerald-500/20",
     },
@@ -192,7 +174,7 @@ export default function OrdersPage() {
             )}
           </div>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Monitor incoming customer orders, print thermal receipts, and auto-dispatch Borzo Porter couriers.
+            Monitor incoming customer orders, print thermal receipts, and manage preparation and deliveries.
           </p>
         </div>
 
@@ -247,8 +229,8 @@ export default function OrdersPage() {
             <TabsTrigger value="all">All Orders</TabsTrigger>
             <TabsTrigger value="placed">Placed</TabsTrigger>
             <TabsTrigger value="preparing">Preparing</TabsTrigger>
-            <TabsTrigger value="porter_booked">Dispatched</TabsTrigger>
-            <TabsTrigger value="porter_failed">Porter Failed</TabsTrigger>
+            <TabsTrigger value="ready">Ready</TabsTrigger>
+            <TabsTrigger value="out_for_delivery">Out for Delivery</TabsTrigger>
             <TabsTrigger value="delivered">Delivered</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -275,7 +257,7 @@ export default function OrdersPage() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Items & Total</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Delivery / Porter</TableHead>
+                  <TableHead>Fulfillment</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -355,37 +337,34 @@ export default function OrdersPage() {
                           <OrderStatusBadge status={order.status} />
                         </TableCell>
 
-                        {/* Delivery / Porter Status */}
+                        {/* Fulfillment Status */}
                         <TableCell>
-                          {order.borzo?.trackingUrl ? (
-                            <a href={order.borzo.trackingUrl} target="_blank" rel="noopener noreferrer">
-                              <Button
-                                variant="outline"
-                                size="xs"
-                                className="h-6 text-[11px] gap-1 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                Live Porter
-                              </Button>
-                            </a>
-                          ) : order.status === "porter_failed" ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] font-semibold text-rose-400">Failed</span>
-                              <Button
-                                size="xs"
-                                variant="destructive"
-                                className="h-6 text-[10px] gap-1"
-                                onClick={() => handleRetryPorter(order.id)}
-                                disabled={isRowBusy}
-                              >
-                                <RotateCw className="h-3 w-3" />
-                                Retry
-                              </Button>
+                          {isPickup ? (
+                            <div>
+                              <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-400 bg-purple-500/5">
+                                Self Pickup
+                              </Badge>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                {order.status === "ready" ? "Ready at kitchen" : order.status === "delivered" ? "Collected" : "In kitchen"}
+                              </div>
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">
-                              {order.status === "placed" ? "Awaiting kitchen" : "Pending pickup"}
-                            </span>
+                            <div>
+                              <Badge variant="outline" className="text-[10px] border-sky-500/30 text-sky-400 bg-sky-500/5">
+                                Doorstep Delivery
+                              </Badge>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                {order.status === "ready" ? (
+                                  <span className="text-amber-400 font-medium">Ready to dispatch</span>
+                                ) : order.status === "out_for_delivery" ? (
+                                  <span className="text-sky-400 font-medium">Out for delivery</span>
+                                ) : order.status === "delivered" ? (
+                                  <span className="text-emerald-400 font-medium">Delivered</span>
+                                ) : (
+                                  "Manual rider dispatch"
+                                )}
+                              </div>
+                            </div>
                           )}
                         </TableCell>
 
@@ -416,6 +395,7 @@ export default function OrdersPage() {
                               </Button>
                             )}
 
+                            {/* Mark Ready */}
                             {order.status === "preparing" && (
                               <Button
                                 size="sm"
@@ -423,29 +403,41 @@ export default function OrdersPage() {
                                 onClick={() => handleStatusChange(order.id, "ready")}
                                 disabled={isRowBusy}
                               >
-                                {isPickup ? (
-                                  <UtensilsCrossed className="h-3.5 w-3.5" />
-                                ) : (
-                                  <Truck className="h-3.5 w-3.5" />
-                                )}
-                                {isPickup ? "Ready for pickup" : "Ready & Dispatch Porter"}
-                              </Button>
-                            )}
-
-                            {isPickup && order.status === "ready" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 text-xs gap-1 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
-                                onClick={() => handleStatusChange(order.id, "delivered")}
-                                disabled={isRowBusy}
-                              >
                                 <CheckCircle2 className="h-3.5 w-3.5" />
-                                Collected
+                                {isPickup ? "Ready for Pickup" : "Mark Ready"}
                               </Button>
                             )}
 
-                            {(order.status === "porter_booked" || order.status === "out_for_delivery") && (
+                            {/* When Ready */}
+                            {order.status === "ready" && (
+                              <>
+                                {!isPickup && (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className="h-8 text-xs gap-1 bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30"
+                                    onClick={() => handleStatusChange(order.id, "out_for_delivery")}
+                                    disabled={isRowBusy}
+                                  >
+                                    <Truck className="h-3.5 w-3.5" />
+                                    Dispatch
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs gap-1 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
+                                  onClick={() => handleStatusChange(order.id, "delivered")}
+                                  disabled={isRowBusy}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  {isPickup ? "Collected" : "Delivered"}
+                                </Button>
+                              </>
+                            )}
+
+                            {/* When Out for Delivery */}
+                            {(order.status === "out_for_delivery" || order.status === "porter_booked") && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -475,10 +467,16 @@ export default function OrdersPage() {
                                   <Printer className="mr-2 h-3.5 w-3.5" />
                                   Print Thermal Receipt
                                 </DropdownMenuItem>
-                                {order.status === "porter_failed" && (
-                                  <DropdownMenuItem onClick={() => handleRetryPorter(order.id)}>
-                                    <RotateCw className="mr-2 h-3.5 w-3.5" />
-                                    Retry Porter Booking
+                                {order.status === "ready" && !isPickup && (
+                                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "out_for_delivery")}>
+                                    <Truck className="mr-2 h-3.5 w-3.5" />
+                                    Mark Out for Delivery
+                                  </DropdownMenuItem>
+                                )}
+                                {(order.status === "ready" || order.status === "out_for_delivery" || order.status === "porter_booked") && (
+                                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "delivered")}>
+                                    <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+                                    Mark Delivered / Closed
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
@@ -529,7 +527,6 @@ export default function OrdersPage() {
         onOpenChange={(open) => !open && setDetailsModalOrder(null)}
         onPrintBill={(orderId) => setBillModalOrderId(orderId)}
         onCancelOrder={(ord) => setCancelModalOrder(ord)}
-        onRetryPorter={(orderId) => handleRetryPorter(orderId)}
         onUpdateStatus={(orderId, st) => handleStatusChange(orderId, st)}
       />
     </div>

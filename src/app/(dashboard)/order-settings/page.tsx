@@ -78,7 +78,7 @@ export default function OrderSettingsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Order types & Fulfillment</h2>
         <p className="text-muted-foreground">
-          Control pickup vs delivery. Doorstep delivery is fulfilled all over Mumbai via Borzo Porter Courier Service.
+          Control pickup vs delivery options for your customers.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export default function OrderSettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Fulfillment</CardTitle>
           <CardDescription>
-            Pickup is collected from Kasarvadavali kitchen. Delivery covers all over Mumbai via Borzo Porter service.
+            Pickup is collected from Kasarvadavali kitchen. Delivery covers Mumbai & Thane.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
@@ -105,9 +105,9 @@ export default function OrderSettingsPage() {
             <div className="flex items-center gap-3">
               <Bike className="text-muted-foreground" />
               <div>
-                <Label htmlFor="delivery-enabled">Delivery (All over Mumbai via Borzo / Porter)</Label>
+                <Label htmlFor="delivery-enabled">Doorstep Delivery</Label>
                 <p className="text-xs text-muted-foreground">
-                  Dispatched all over Mumbai via Borzo porter courier service
+                  Dispatched to customer address across Mumbai & Thane
                 </p>
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function OrderSettingsPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-fee">Delivery fee (₹) [Set 0 for dynamic Borzo calculation]</Label>
+            <Label htmlFor="delivery-fee">Delivery fee (₹)</Label>
             <Input
               id="delivery-fee"
               type="number"
@@ -125,7 +125,7 @@ export default function OrderSettingsPage() {
               disabled={!deliveryEnabled}
             />
             <p className="text-[11px] text-muted-foreground">
-              Set to 0 if delivery is calculated separately or paid at actuals via Borzo porter.
+              Fixed delivery fee charged to the customer at checkout (set 0 for free delivery).
             </p>
           </div>
 
