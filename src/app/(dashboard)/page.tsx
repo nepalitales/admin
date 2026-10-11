@@ -380,18 +380,18 @@ export default function DashboardPage() {
             </Badge>
           )}
 
-          {/* SSE Live Connection Pill */}
+          {/* Live Sync Status Pill */}
           {isConnected ? (
             <Badge
               variant="outline"
               className="border-emerald-500/40 text-emerald-400 bg-emerald-500/10 text-xs py-1 px-2.5 gap-1.5"
             >
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              Live SSE Active
+              Live Sync Active
             </Badge>
           ) : (
             <Badge variant="outline" className="text-muted-foreground text-xs py-1 px-2.5">
-              Connecting stream...
+              Syncing feed...
             </Badge>
           )}
 

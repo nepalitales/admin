@@ -142,7 +142,12 @@ async function request<T = unknown>(
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        if (res.status === 401) {
+        if (
+          res.status === 401 &&
+          (data.code === "SESSION_EXPIRED" ||
+            data.message?.toLowerCase().includes("session expired") ||
+            data.message?.toLowerCase().includes("authentication required"))
+        ) {
           removeAdminToken();
         }
         throw new ApiError(
@@ -955,6 +960,34 @@ export function getOrderEventsUrl(): string {
   const token = getAdminToken();
   const base = `${API_BASE}/orders/events`;
   return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+}
+
+export interface OrderLiveSummaryResponse {
+  success: boolean;
+  counts: {
+    placed: number;
+    preparing: number;
+    ready: number;
+    porterBooked: number;
+    delivered: number;
+    cancelled: number;
+  };
+  events: Array<{
+    type: "order_created" | "order_status_updated" | "order_cancelled" | "porter_status_updated";
+    orderId: string;
+    orderNumber: string;
+    status: string;
+    timestamp: string;
+    summary?: Record<string, unknown>;
+  }>;
+  serverTime: number;
+}
+
+export async function getOrderLiveSummary(since?: number): Promise<OrderLiveSummaryResponse> {
+  const query = since ? `?since=${since}` : "";
+  return request<OrderLiveSummaryResponse>(`/orders/live-summary${query}`, {
+    forceRefresh: true,
+  });
 }
 
 // ─── Add-ons ─────────────────────────────────────────────────────

@@ -164,12 +164,12 @@ export default function OrdersPage() {
             {isConnected ? (
               <Badge variant="outline" className="gap-1.5 border-emerald-500/40 text-emerald-400 bg-emerald-500/10 text-xs py-0.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Live Real-Time SSE
+                Live Sync Active
               </Badge>
             ) : (
               <Badge variant="outline" className="gap-1.5 border-zinc-600 text-zinc-400 text-xs py-0.5">
                 <span className="h-2 w-2 rounded-full bg-zinc-500" />
-                Connecting Feed...
+                Syncing Feed...
               </Badge>
             )}
           </div>
