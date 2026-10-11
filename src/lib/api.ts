@@ -915,23 +915,9 @@ export async function updateOrderStatus(
     success: true;
     message: string;
     order: Order;
-    borzo?: OrderBorzo;
-    porterFailed?: boolean;
-    error?: string;
   }>(`/orders/${orderId}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status, note }),
-  });
-}
-
-export async function retryPorterBooking(orderId: string) {
-  return request<{
-    success: true;
-    message: string;
-    order: Order;
-    borzo?: OrderBorzo;
-  }>(`/orders/${orderId}/retry-porter`, {
-    method: "POST",
   });
 }
 
