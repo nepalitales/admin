@@ -164,10 +164,17 @@ export async function generateKitchenBillPdf(bill: KitchenBill): Promise<Uint8Ar
     left: "Sub-Total:",
     right: `INR ${bill.totals.subtotal}`,
   });
-  lines.push({
-    left: isPickup ? "Fulfillment:" : "Delivery Fee:",
-    right: isPickup ? "Free" : bill.totals.deliveryFee > 0 ? `INR ${bill.totals.deliveryFee}` : "Free",
-  });
+  if (isPickup) {
+    lines.push({
+      left: "Fulfillment:",
+      right: "Self-Pickup (Free)",
+    });
+  } else {
+    lines.push({
+      left: "Delivery Fee:",
+      right: bill.totals.deliveryFee > 0 ? `INR ${bill.totals.deliveryFee}` : "As per Borzo/Porter",
+    });
+  }
 
   if (bill.totals.discount > 0) {
     lines.push({
@@ -185,6 +192,9 @@ export async function generateKitchenBillPdf(bill: KitchenBill): Promise<Uint8Ar
   lines.push(divider);
 
   // 5. Footer
+  if (!isPickup) {
+    lines.push({ text: "* Delivery as per Borzo/Porter service", align: "center" });
+  }
   lines.push({ text: "** SAVE PAPER SAVE NATURE **", bold: true, align: "center" });
   lines.push({ text: `Time: ${formattedTime}`, align: "center" });
   lines.push(divider);

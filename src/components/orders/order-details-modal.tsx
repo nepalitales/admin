@@ -237,8 +237,8 @@ export function OrderDetailsModal({
                   <span>₹{order.itemTotal}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>{isPickup ? "Pickup" : "Delivery Fee"}</span>
-                  <span>{isPickup ? "Free" : (order.deliveryFee > 0 ? `₹${order.deliveryFee}` : "Free")}</span>
+                  <span>{isPickup ? "Fulfillment" : "Delivery Fee"}</span>
+                  <span>{isPickup ? "Free (Pickup)" : (order.deliveryFee > 0 ? `₹${order.deliveryFee}` : "As per Borzo/Porter")}</span>
                 </div>
                 {order.discount > 0 && (
                   <div className="flex justify-between text-emerald-400">

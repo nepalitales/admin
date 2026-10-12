@@ -282,7 +282,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                   ${isPickup ? "Fulfillment:" : "Delivery Fee:"}
                 </td>
                 <td style="text-align: right; padding: 1px 0;">
-                  ${isPickup ? "FREE" : b.totals.deliveryFee > 0 ? `INR ${b.totals.deliveryFee}` : "FREE"}
+                  ${isPickup ? "FREE (Pickup)" : b.totals.deliveryFee > 0 ? `INR ${b.totals.deliveryFee}` : "As per Borzo/Porter service"}
                 </td>
               </tr>
               ${
@@ -313,6 +313,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                 ** SAVE PAPER SAVE NATURE **
               </div>
               <div>Authentic Himalayan Delicacies</div>
+              ${!isPickup ? `<div style="margin-top: 3px; font-weight: bold;">* Delivery as per Borzo/Porter service</div>` : ""}
               <div style="margin-top: 2px;">Thank you for your order!</div>
             </div>
             <div class="dashed-line" style="margin-top: 6px;"></div>
@@ -543,7 +544,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                       ? "Free (Pickup)"
                       : bill.totals.deliveryFee > 0
                       ? `₹${bill.totals.deliveryFee}`
-                      : "Free"}
+                      : "As per Borzo/Porter service"}
                   </td>
                 </tr>
                 {bill.totals.discount > 0 && (
@@ -567,6 +568,9 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
 
             {/* Footer */}
             <div className="text-center text-[9.5px] text-neutral-800 space-y-0.5 pt-1">
+              {bill.order.orderType !== "pickup" && (
+                <div className="font-bold text-neutral-900">* Delivery as per Borzo/Porter service</div>
+              )}
               <div className="font-bold tracking-wider">
                 ** SAVE PAPER SAVE NATURE !! **
               </div>
