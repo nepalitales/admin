@@ -1,444 +1,257 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import type { KitchenBill } from "./api";
 
+function wrapText(text: string, maxChars: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const w of words) {
+    if (!current) {
+      current = w;
+    } else if ((current + " " + w).length <= maxChars) {
+      current += " " + w;
+    } else {
+      lines.push(current);
+      current = w;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+interface ReceiptLine {
+  text?: string;
+  left?: string;
+  right?: string;
+  align?: "left" | "center" | "right";
+  bold?: boolean;
+}
+
 /**
- * Generates an itemized, publication-quality A4 PDF invoice from KitchenBill data.
- * Compatible with all browsers and runtimes using pure pdf-lib.
+ * Generates an authentic 80mm thermal receipt PDF for a KitchenBill.
+ * Identical to the kitchen POS receipt slip with clean monospace typography and dashed dividers.
  */
 export async function generateKitchenBillPdf(bill: KitchenBill): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
-  // Standard A4 dimensions: 595.28 x 841.89 points
-  const page = pdfDoc.addPage([595.28, 841.89]);
-  const { width, height } = page.getSize();
 
-  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdfDoc.embedFont(StandardFonts.Courier);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.CourierBold);
 
-  // Brand Colors
-  const brandRed = rgb(0.85, 0.13, 0.13); // #D92121
-  const darkGray = rgb(0.12, 0.12, 0.12);
-  const mediumGray = rgb(0.4, 0.4, 0.4);
-  const lightGray = rgb(0.92, 0.92, 0.92);
-  const lineGray = rgb(0.82, 0.82, 0.82);
-
-  let y = height - 50;
-
-  // 1. Header: Brand & Invoice Meta
-  page.drawText("NEPALI TALES", {
-    x: 50,
-    y,
-    size: 22,
-    font: fontBold,
-    color: brandRed,
-  });
-
-  page.drawText("TAX INVOICE / RECEIPT", {
-    x: width - 210,
-    y,
-    size: 13,
-    font: fontBold,
-    color: darkGray,
-  });
-
-  y -= 16;
-  page.drawText("Authentic Himalayan Cloud Kitchen", {
-    x: 50,
-    y,
-    size: 9.5,
-    font: fontRegular,
-    color: mediumGray,
-  });
-
-  const invoiceNumber = bill.order.invoiceNumber || bill.order.orderNumber;
-  page.drawText(`Invoice #: ${invoiceNumber}`, {
-    x: width - 210,
-    y,
-    size: 10,
-    font: fontBold,
-    color: darkGray,
-  });
-
-  y -= 14;
-  page.drawText(
-    "Metropolis Rivera, Shop No 10, Kasarvadavali, Opp to Laxmi Narayan Mandir, 400615",
-    {
-      x: 50,
-      y,
-      size: 8.5,
-      font: fontRegular,
-      color: mediumGray,
-    },
-  );
+  const COLS = 38;
+  const FONT_SIZE = 8.5;
+  const LINE_HEIGHT = 11.5;
+  const PAGE_WIDTH = 226.77; // 80mm in points
+  const MARGIN_LEFT = 14;
+  const PRINTABLE_WIDTH = PAGE_WIDTH - MARGIN_LEFT * 2; // ~198.77pt
 
   const formattedDate = new Intl.DateTimeFormat("en-IN", {
     timeZone: "Asia/Kolkata",
     day: "2-digit",
     month: "short",
     year: "numeric",
+  }).format(new Date(bill.order.date));
+
+  const formattedTime = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   }).format(new Date(bill.order.date));
 
-  page.drawText(`Date: ${formattedDate}`, {
-    x: width - 210,
-    y,
-    size: 9,
-    font: fontRegular,
-    color: mediumGray,
+  const invoiceNum = bill.order.invoiceNumber || bill.order.orderNumber;
+  const isPickup = (bill.order.orderType || "delivery") === "pickup";
+  const fulfillmentType = isPickup ? "PICKUP" : "DELIVERY";
+
+  const lines: ReceiptLine[] = [];
+  const divider: ReceiptLine = { text: "-".repeat(COLS), bold: true };
+
+  // 1. Header
+  lines.push({ text: bill.restaurant.name.toUpperCase(), bold: true, align: "center" });
+  for (const l of wrapText(bill.restaurant.address, COLS)) {
+    lines.push({ text: l, align: "center" });
+  }
+  lines.push({ text: `Ph: ${bill.restaurant.phone}`, align: "center" });
+  lines.push(divider);
+  lines.push({ text: "RECEIPT", bold: true, align: "center" });
+  lines.push(divider);
+
+  // 2. Customer & Order Meta
+  lines.push({
+    left: `Name: ${bill.customer.name.slice(0, 19)}`,
+    right: `Inv: ${invoiceNum}`,
+    bold: true,
+  });
+  lines.push({
+    left: `Order #: ${bill.order.orderNumber}`,
+    right: formattedDate,
+  });
+  lines.push({
+    left: `TYPE: ${fulfillmentType}`,
+    right: `Time: ${formattedTime}`,
+    bold: true,
   });
 
-  y -= 14;
-  page.drawText("Phone: +91 7678097659 | Email: orders@nepalitales.com", {
-    x: 50,
-    y,
-    size: 8.5,
-    font: fontRegular,
-    color: mediumGray,
-  });
-
-  page.drawText(`Status: ${(bill.order.status || "CONFIRMED").toUpperCase()}`, {
-    x: width - 210,
-    y,
-    size: 9,
-    font: fontBold,
-    color: brandRed,
-  });
-
-  // Top Divider line
-  y -= 16;
-  page.drawLine({
-    start: { x: 50, y },
-    end: { x: width - 50, y },
-    thickness: 1.5,
-    color: brandRed,
-  });
-
-  // 2. Customer & Fulfillment Info Box
-  y -= 25;
-  const infoBoxY = y;
-
-  // Left Column: Customer Details
-  page.drawText("BILLED TO:", {
-    x: 50,
-    y: infoBoxY,
-    size: 9,
-    font: fontBold,
-    color: mediumGray,
-  });
-  page.drawText(bill.customer.name || "Customer", {
-    x: 50,
-    y: infoBoxY - 14,
-    size: 11,
-    font: fontBold,
-    color: darkGray,
-  });
-  page.drawText(`Phone: ${bill.customer.phone || "N/A"}`, {
-    x: 50,
-    y: infoBoxY - 28,
-    size: 9,
-    font: fontRegular,
-    color: darkGray,
-  });
-  if (bill.customer.email) {
-    page.drawText(`Email: ${bill.customer.email}`, {
-      x: 50,
-      y: infoBoxY - 40,
-      size: 9,
-      font: fontRegular,
-      color: darkGray,
-    });
+  if (bill.order.dispatchSlot) {
+    const slotStr = `Slot: ${bill.order.dispatchDate ? `${bill.order.dispatchDate} ` : ""}${bill.order.dispatchSlot}`;
+    for (const l of wrapText(slotStr, COLS)) {
+      lines.push({ text: l });
+    }
   }
 
-  // Right Column: Fulfillment / Delivery Details
-  const isPickup = bill.order.orderType === "pickup";
-  const fulfillmentX = width / 2 + 20;
-
-  page.drawText("FULFILLMENT & DISPATCH:", {
-    x: fulfillmentX,
-    y: infoBoxY,
-    size: 9,
-    font: fontBold,
-    color: mediumGray,
-  });
-
-  page.drawText(
-    isPickup
-      ? "Mode: Kitchen Pickup (Takeaway)"
-      : "Mode: Doorstep Delivery (Mumbai / Thane)",
-    {
-      x: fulfillmentX,
-      y: infoBoxY - 14,
-      size: 10,
-      font: fontBold,
-      color: darkGray,
-    },
-  );
-
-  const slotInfo = bill.order.dispatchSlot
-    ? `Slot: ${bill.order.dispatchDate ? `${bill.order.dispatchDate} ` : ""}(${bill.order.dispatchSlot})`
-    : `Date: ${bill.order.dispatchDate || "Scheduled"}`;
-  page.drawText(slotInfo, {
-    x: fulfillmentX,
-    y: infoBoxY - 28,
-    size: 9,
-    font: fontRegular,
-    color: darkGray,
-  });
-
-  const addressText = isPickup
-    ? "Pickup at: Metropolis Rivera, Shop No 10, Kasarvadavali"
-    : `Address: ${bill.customer.deliveryAddress || "Delivery Address"}`;
-
-  page.drawText(addressText.slice(0, 52), {
-    x: fulfillmentX,
-    y: infoBoxY - 40,
-    size: 8.5,
-    font: fontRegular,
-    color: mediumGray,
-  });
+  const addrPrefix = isPickup
+    ? "Pickup: Metropolis Rivera, Shop 10"
+    : `Address: ${bill.customer.deliveryAddress || "Thane, Maharashtra"}`;
+  for (const l of wrapText(addrPrefix, COLS)) {
+    lines.push({ text: l });
+  }
 
   if (bill.customer.note) {
-    page.drawText(`Note: ${bill.customer.note.slice(0, 48)}`, {
-      x: fulfillmentX,
-      y: infoBoxY - 52,
-      size: 8,
-      font: fontRegular,
-      color: mediumGray,
-    });
+    for (const l of wrapText(`Note: ${bill.customer.note}`, COLS)) {
+      lines.push({ text: l });
+    }
   }
 
-  y = infoBoxY - 65;
+  lines.push(divider);
 
-  // 3. Itemized Table
-  // Header Row
-  page.drawRectangle({
-    x: 50,
-    y: y - 6,
-    width: width - 100,
-    height: 22,
-    color: lightGray,
+  // 3. Item Breakdown Table
+  lines.push({
+    left: "Item",
+    right: "Price Qty Total",
+    bold: true,
   });
-
-  page.drawText("ITEM DESCRIPTION", {
-    x: 60,
-    y,
-    size: 9,
-    font: fontBold,
-    color: darkGray,
-  });
-  page.drawText("QTY", {
-    x: 340,
-    y,
-    size: 9,
-    font: fontBold,
-    color: darkGray,
-  });
-  page.drawText("PRICE", {
-    x: 410,
-    y,
-    size: 9,
-    font: fontBold,
-    color: darkGray,
-  });
-  page.drawText("AMOUNT", {
-    x: 495,
-    y,
-    size: 9,
-    font: fontBold,
-    color: darkGray,
-  });
-
-  y -= 20;
 
   for (const item of bill.items) {
-    page.drawText(item.name, {
-      x: 60,
-      y,
-      size: 9.5,
-      font: fontBold,
-      color: darkGray,
-    });
-    page.drawText(String(item.quantity), {
-      x: 345,
-      y,
-      size: 9.5,
-      font: fontRegular,
-      color: darkGray,
-    });
-    page.drawText(`INR ${item.price}`, {
-      x: 410,
-      y,
-      size: 9.5,
-      font: fontRegular,
-      color: darkGray,
-    });
-    page.drawText(`INR ${item.total}`, {
-      x: 495,
-      y,
-      size: 9.5,
-      font: fontBold,
-      color: darkGray,
-    });
+    const priceStr = String(item.price).padStart(5);
+    const qtyStr = String(item.quantity).padStart(3);
+    const totalStr = String(item.total).padStart(6);
+    const colRight = `${priceStr} ${qtyStr} ${totalStr}`;
 
-    y -= 14;
-
-    // Attached Add-ons
-    if (item.addons && item.addons.length > 0) {
-      for (const addon of item.addons) {
-        page.drawText(`+ ${addon.name} (x${addon.quantity})`, {
-          x: 75,
-          y,
-          size: 8.5,
-          font: fontRegular,
-          color: mediumGray,
-        });
-        page.drawText(`INR ${addon.total}`, {
-          x: 495,
-          y,
-          size: 8.5,
-          font: fontRegular,
-          color: mediumGray,
-        });
-        y -= 12;
+    const maxItemNameLen = COLS - colRight.length - 1;
+    if (item.name.length <= maxItemNameLen) {
+      lines.push({
+        left: item.name,
+        right: colRight,
+      });
+    } else {
+      const itemWrapped = wrapText(item.name, maxItemNameLen);
+      lines.push({
+        left: itemWrapped[0],
+        right: colRight,
+      });
+      for (let i = 1; i < itemWrapped.length; i++) {
+        lines.push({ text: `  ${itemWrapped[i]}` });
       }
     }
 
-    // Row divider line
-    page.drawLine({
-      start: { x: 50, y: y + 4 },
-      end: { x: width - 50, y: y + 4 },
-      thickness: 0.5,
-      color: lineGray,
-    });
-    y -= 6;
+    if (item.addons && item.addons.length > 0) {
+      for (const add of item.addons) {
+        const addInfo = `+ ${add.name} (${add.quantity}x @ ${add.price})`;
+        const addTotal = String(add.total);
+        if (addInfo.length + addTotal.length + 1 <= COLS) {
+          lines.push({ left: `  ${addInfo}`, right: addTotal });
+        } else {
+          lines.push({ text: `  ${addInfo}` });
+          lines.push({ right: addTotal });
+        }
+      }
+    }
   }
 
-  // 4. Totals Summary
-  y -= 10;
-  const totalsX = width - 220;
+  lines.push(divider);
 
-  page.drawText("Subtotal:", {
-    x: totalsX,
-    y,
-    size: 9.5,
-    font: fontRegular,
-    color: mediumGray,
+  // 4. Totals
+  lines.push({
+    left: "Sub-Total:",
+    right: `INR ${bill.totals.subtotal}`,
   });
-  page.drawText(`INR ${bill.totals.subtotal}`, {
-    x: width - 80,
-    y,
-    size: 9.5,
-    font: fontRegular,
-    color: darkGray,
+  lines.push({
+    left: isPickup ? "Fulfillment:" : "Delivery Fee:",
+    right: isPickup ? "Free" : bill.totals.deliveryFee > 0 ? `INR ${bill.totals.deliveryFee}` : "Free",
   });
-
-  y -= 14;
-  page.drawText("Delivery Charges:", {
-    x: totalsX,
-    y,
-    size: 9.5,
-    font: fontRegular,
-    color: mediumGray,
-  });
-  page.drawText(
-    bill.totals.deliveryFee > 0 ? `INR ${bill.totals.deliveryFee}` : "FREE",
-    {
-      x: width - 80,
-      y,
-      size: 9.5,
-      font: fontRegular,
-      color: darkGray,
-    },
-  );
 
   if (bill.totals.discount > 0) {
-    y -= 14;
-    page.drawText("Discount:", {
-      x: totalsX,
-      y,
-      size: 9.5,
-      font: fontRegular,
-      color: mediumGray,
-    });
-    page.drawText(`-INR ${bill.totals.discount}`, {
-      x: width - 80,
-      y,
-      size: 9.5,
-      font: fontRegular,
-      color: darkGray,
+    lines.push({
+      left: "Discount:",
+      right: `-INR ${bill.totals.discount}`,
     });
   }
 
-  y -= 16;
-  page.drawLine({
-    start: { x: totalsX - 10, y: y + 10 },
-    end: { x: width - 50, y: y + 10 },
-    thickness: 1,
-    color: lineGray,
+  lines.push({
+    left: `Mode: ${bill.payment.mode === "RAZORPAY" ? "Online" : bill.payment.mode}`,
+    right: `Total: INR ${bill.totals.grandTotal}`,
+    bold: true,
   });
 
-  page.drawText("TOTAL PAID:", {
-    x: totalsX,
-    y,
-    size: 11,
-    font: fontBold,
-    color: brandRed,
-  });
-  page.drawText(`INR ${bill.totals.grandTotal}`, {
-    x: width - 80,
-    y,
-    size: 12,
-    font: fontBold,
-    color: brandRed,
-  });
+  lines.push(divider);
 
-  // Payment method note
-  y -= 16;
-  const paymentMode = `Payment: ${bill.payment.mode === "RAZORPAY" ? "Online Razorpay" : bill.payment.mode} (${bill.payment.status})`;
-  page.drawText(paymentMode, {
-    x: totalsX,
-    y,
-    size: 8,
-    font: fontRegular,
-    color: mediumGray,
-  });
+  // 5. Footer
+  lines.push({ text: "** SAVE PAPER SAVE NATURE **", bold: true, align: "center" });
+  lines.push({ text: `Time: ${formattedTime}`, align: "center" });
+  lines.push(divider);
 
-  // 5. Bottom Compliance Disclaimer & Thank you
-  const footerY = 60;
-  page.drawLine({
-    start: { x: 50, y: footerY + 25 },
-    end: { x: width - 50, y: footerY + 25 },
-    thickness: 0.8,
-    color: lineGray,
-  });
+  // Layout calculation
+  const totalHeight = lines.length * LINE_HEIGHT + 32;
+  const page = pdfDoc.addPage([PAGE_WIDTH, totalHeight]);
+  const textColor = rgb(0, 0, 0);
 
-  page.drawText(
-    "Thank you for ordering authentic Himalayan delicacies with Nepali Tales!",
-    {
-      x: 50,
-      y: footerY + 12,
-      size: 9,
-      font: fontBold,
-      color: darkGray,
-    },
-  );
+  let y = totalHeight - 18;
 
-  const disclaimerText =
-    "* Disclaimer: All dishes are freshly prepared on a 1-day advance pre-order schedule. Dishes contain Monosodium Glutamate (MSG) in balanced culinary proportions for authentic taste.";
-  page.drawText(disclaimerText, {
-    x: 50,
-    y: footerY,
-    size: 7.5,
-    font: fontRegular,
-    color: mediumGray,
-  });
+  for (const l of lines) {
+    const f = l.bold ? fontBold : font;
+
+    if (l.left !== undefined && l.right !== undefined) {
+      page.drawText(l.left, {
+        x: MARGIN_LEFT,
+        y,
+        size: FONT_SIZE,
+        font: f,
+        color: textColor,
+      });
+
+      const rightWidth = f.widthOfTextAtSize(l.right, FONT_SIZE);
+      page.drawText(l.right, {
+        x: PAGE_WIDTH - MARGIN_LEFT - rightWidth,
+        y,
+        size: FONT_SIZE,
+        font: f,
+        color: textColor,
+      });
+    } else if (l.right !== undefined) {
+      const rightWidth = f.widthOfTextAtSize(l.right, FONT_SIZE);
+      page.drawText(l.right, {
+        x: PAGE_WIDTH - MARGIN_LEFT - rightWidth,
+        y,
+        size: FONT_SIZE,
+        font: f,
+        color: textColor,
+      });
+    } else {
+      const str = l.text || "";
+      let x = MARGIN_LEFT;
+      if (l.align === "center") {
+        const textWidth = f.widthOfTextAtSize(str, FONT_SIZE);
+        x = Math.max(MARGIN_LEFT, (PAGE_WIDTH - textWidth) / 2);
+      } else if (l.align === "right") {
+        const textWidth = f.widthOfTextAtSize(str, FONT_SIZE);
+        x = PAGE_WIDTH - MARGIN_LEFT - textWidth;
+      }
+      page.drawText(str, {
+        x,
+        y,
+        size: FONT_SIZE,
+        font: f,
+        color: textColor,
+      });
+    }
+
+    y -= LINE_HEIGHT;
+  }
 
   return await pdfDoc.save();
 }
 
 /**
- * Triggers a browser download of the generated PDF invoice.
+ * Triggers a browser download of the generated 80mm kitchen bill PDF receipt.
  */
 export async function downloadKitchenBillPdf(bill: KitchenBill): Promise<void> {
   const pdfBytes = await generateKitchenBillPdf(bill);
@@ -446,7 +259,7 @@ export async function downloadKitchenBillPdf(bill: KitchenBill): Promise<void> {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `Invoice_${bill.order.invoiceNumber || bill.order.orderNumber}.pdf`;
+  anchor.download = `Receipt_${bill.order.invoiceNumber || bill.order.orderNumber}.pdf`;
   document.body.appendChild(anchor);
   anchor.click();
   setTimeout(() => {
