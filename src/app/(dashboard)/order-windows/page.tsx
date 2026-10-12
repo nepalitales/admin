@@ -496,19 +496,19 @@ export default function OrderWindowsPage() {
           </DialogHeader>
 
           {editDay && weeklyOff.includes(editDay.day) && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive flex items-start gap-2.5">
-              <CalendarOff className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+              <CalendarOff className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
               <div className="space-y-1">
-                <p className="font-semibold text-xs leading-none">Weekly Off is active</p>
+                <p className="font-semibold text-xs leading-none">Kitchen dispatch is off on {DAY_LABELS[editDay.day]}s</p>
                 <p className="text-xs text-muted-foreground">
-                  The restaurant is closed every {DAY_LABELS[editDay.day]}. To open ordering on this day, remove it from Weekly Off schedule first.
+                  The kitchen does not cook or deliver food on this day. When &ldquo;Accept orders&rdquo; is enabled, customers can place pre-orders on {DAY_LABELS[editDay.day]} for delivery on the next open operating day.
                 </p>
                 <Link
                   href="/weekly-off"
                   onClick={() => setDialogOpen(false)}
                   className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline pt-0.5"
                 >
-                  Manage Weekly Off <ArrowUpRight className="h-3 w-3" />
+                  Manage Weekly Off Schedule <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
             </div>

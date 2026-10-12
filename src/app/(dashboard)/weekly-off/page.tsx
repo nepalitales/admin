@@ -71,13 +71,15 @@ export default function WeeklyOffPage() {
     <div className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Weekly Off</h2>
-        <p className="text-muted-foreground">Set recurring days when the shop is closed</p>
+        <p className="text-muted-foreground">
+          Set recurring days when the kitchen does not cook or deliver food. Online advance pre-orders for the next operating day are still accepted.
+        </p>
       </div>
 
       <Card className="max-w-lg">
         <CardHeader>
           <CardTitle className="text-base">Select Off Days</CardTitle>
-          <CardDescription>Click on a day to toggle it. Selected days appear as closed.</CardDescription>
+          <CardDescription>Click on a day to toggle it. Kitchen cooking and delivery dispatches will be paused on these days.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -104,8 +106,8 @@ export default function WeeklyOffPage() {
 
           <div className="text-sm text-muted-foreground">
             {selectedDays.length === 0
-              ? "No weekly off — shop is open every day."
-              : `Closed every: ${selectedDays.map((d) => DAY_FULL[d]).join(", ")}`}
+              ? "No weekly off — kitchen delivers every day."
+              : `Kitchen dispatch closed every: ${selectedDays.map((d) => DAY_FULL[d]).join(", ")} (Advance pre-orders will be scheduled for next open operating day)`}
           </div>
 
           <Button onClick={handleSave} disabled={saving}>
