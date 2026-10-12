@@ -824,10 +824,13 @@ export interface KitchenBill {
   };
   order: {
     orderNumber: string;
+    invoiceNumber?: string;
     orderId: string;
     date: string;
     status: string;
     orderType?: OrderType;
+    dispatchDate?: string;
+    dispatchSlot?: string;
   };
   customer: {
     name: string;
@@ -841,6 +844,12 @@ export interface KitchenBill {
     price: number;
     quantity: number;
     total: number;
+    addons?: Array<{
+      name: string;
+      price: number;
+      quantity: number;
+      total: number;
+    }>;
   }>;
   totals: {
     subtotal: number;

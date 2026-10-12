@@ -86,7 +86,7 @@ export default function OrderSettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">Fulfillment</CardTitle>
           <CardDescription>
-            Pickup is collected from Kasarvadavali kitchen. Delivery covers Mumbai & Thane.
+            Pickup is collected from Metropolis Rivera, Kasarvadavali. Delivery covers Mumbai & Thane.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
@@ -95,7 +95,7 @@ export default function OrderSettingsPage() {
               <Store className="text-muted-foreground" />
               <div>
                 <Label htmlFor="pickup-enabled">Pickup</Label>
-                <p className="text-xs text-muted-foreground">Customer collects from Kasarvadavali cloud kitchen</p>
+                <p className="text-xs text-muted-foreground">Customer collects from Metropolis Rivera, Kasarvadavali kitchen</p>
               </div>
             </div>
             <Switch id="pickup-enabled" checked={pickupEnabled} onCheckedChange={setPickupEnabled} />
@@ -114,28 +114,13 @@ export default function OrderSettingsPage() {
             <Switch id="delivery-enabled" checked={deliveryEnabled} onCheckedChange={setDeliveryEnabled} />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-fee">Delivery fee (₹)</Label>
-            <Input
-              id="delivery-fee"
-              type="number"
-              min="0"
-              value={deliveryFee}
-              onChange={(e) => setDeliveryFee(e.target.value)}
-              disabled={!deliveryEnabled}
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Fixed delivery fee charged to the customer at checkout (set 0 for free delivery).
-            </p>
-          </div>
-
           <div className="flex flex-col gap-2">
             <Label htmlFor="pickup-note">Pickup instructions</Label>
             <Textarea
               id="pickup-note"
               value={pickupInstructions}
               onChange={(e) => setPickupInstructions(e.target.value)}
-              placeholder="Collect from Metropolis Riveria..."
+              placeholder="Collect from Metropolis Rivera, shop no 10, kasarvadavali, opp to Laxmi Narayan mandir, 400615..."
               disabled={!pickupEnabled}
               rows={3}
             />
