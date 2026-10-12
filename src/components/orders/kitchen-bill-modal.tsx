@@ -312,7 +312,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
               <div style="font-weight: bold; letter-spacing: 1px;">
                 ** SAVE PAPER SAVE NATURE **
               </div>
-              <div>Authentic Himalayan Delicacies</div>
+              <div>Authentic Nepali Delicacies</div>
               ${!isPickup ? `<div style="margin-top: 3px; font-weight: bold;">* Delivery as per Borzo/Porter service</div>` : ""}
               <div style="margin-top: 2px;">Thank you for your order!</div>
             </div>
