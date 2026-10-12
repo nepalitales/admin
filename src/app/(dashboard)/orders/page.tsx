@@ -13,6 +13,7 @@ import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { KitchenBillModal } from "@/components/orders/kitchen-bill-modal";
 import { CancelOrderModal } from "@/components/orders/cancel-order-modal";
 import { OrderDetailsModal } from "@/components/orders/order-details-modal";
+import { CourierDispatchModal } from "@/components/orders/courier-dispatch-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,7 @@ export default function OrdersPage() {
   const [billModalOrderId, setBillModalOrderId] = useState<string | null>(null);
   const [cancelModalOrder, setCancelModalOrder] = useState<Order | null>(null);
   const [detailsModalOrder, setDetailsModalOrder] = useState<Order | null>(null);
+  const [courierModalOrder, setCourierModalOrder] = useState<Order | null>(null);
 
   // Live order counts
   const [counts, setCounts] = useState({ placed: 0, preparing: 0, ready: 0 });
@@ -416,11 +418,11 @@ export default function OrdersPage() {
                                     size="sm"
                                     variant="secondary"
                                     className="h-8 text-xs gap-1 bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30"
-                                    onClick={() => handleStatusChange(order.id, "out_for_delivery")}
+                                    onClick={() => setCourierModalOrder(order)}
                                     disabled={isRowBusy}
                                   >
                                     <Truck className="h-3.5 w-3.5" />
-                                    Dispatch
+                                    Book Courier
                                   </Button>
                                 )}
                                 <Button
@@ -438,16 +440,31 @@ export default function OrdersPage() {
 
                             {/* When Out for Delivery */}
                             {(order.status === "out_for_delivery" || order.status === "porter_booked") && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 text-xs gap-1 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
-                                onClick={() => handleStatusChange(order.id, "delivered")}
-                                disabled={isRowBusy}
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Delivered
-                              </Button>
+                              <>
+                                {!isPickup && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 text-xs gap-1 text-sky-400 hover:bg-sky-500/10"
+                                    onClick={() => setCourierModalOrder(order)}
+                                    disabled={isRowBusy}
+                                    title="View / update courier tracking and resend WhatsApp"
+                                  >
+                                    <Truck className="h-3.5 w-3.5" />
+                                    Courier
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs gap-1 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
+                                  onClick={() => handleStatusChange(order.id, "delivered")}
+                                  disabled={isRowBusy}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Delivered
+                                </Button>
+                              </>
                             )}
 
                             {/* More Actions Dropdown */}
@@ -459,7 +476,7 @@ export default function OrdersPage() {
                                   </Button>
                                 }
                               />
-                              <DropdownMenuContent align="end" className="w-48 text-xs">
+                              <DropdownMenuContent align="end" className="w-52 text-xs">
                                 <DropdownMenuItem onClick={() => setDetailsModalOrder(order)}>
                                   View Full Order Details
                                 </DropdownMenuItem>
@@ -467,10 +484,22 @@ export default function OrdersPage() {
                                   <Printer className="mr-2 h-3.5 w-3.5" />
                                   Print Thermal Receipt
                                 </DropdownMenuItem>
+                                {!isPickup &&
+                                  order.status !== "delivered" &&
+                                  order.status !== "cancelled_by_customer" &&
+                                  order.status !== "cancelled_by_admin" && (
+                                    <DropdownMenuItem
+                                      onClick={() => setCourierModalOrder(order)}
+                                      className="text-sky-400"
+                                    >
+                                      <Truck className="mr-2 h-3.5 w-3.5" />
+                                      Book Borzo / Porter Courier
+                                    </DropdownMenuItem>
+                                  )}
                                 {order.status === "ready" && !isPickup && (
                                   <DropdownMenuItem onClick={() => handleStatusChange(order.id, "out_for_delivery")}>
                                     <Truck className="mr-2 h-3.5 w-3.5" />
-                                    Mark Out for Delivery
+                                    Mark Out for Delivery (Direct)
                                   </DropdownMenuItem>
                                 )}
                                 {(order.status === "ready" || order.status === "out_for_delivery" || order.status === "porter_booked") && (
@@ -528,6 +557,15 @@ export default function OrdersPage() {
         onPrintBill={(orderId) => setBillModalOrderId(orderId)}
         onCancelOrder={(ord) => setCancelModalOrder(ord)}
         onUpdateStatus={(orderId, st) => handleStatusChange(orderId, st)}
+        onBookCourier={(ord) => setCourierModalOrder(ord)}
+      />
+
+      {/* Courier Dispatch & WhatsApp Modal */}
+      <CourierDispatchModal
+        order={courierModalOrder}
+        open={!!courierModalOrder}
+        onOpenChange={(open) => !open && setCourierModalOrder(null)}
+        onSuccess={() => fetchOrders(true)}
       />
     </div>
   );

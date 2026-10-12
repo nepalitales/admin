@@ -924,6 +924,7 @@ export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus,
   note?: string,
+  trackingUrl?: string,
 ) {
   return request<{
     success: true;
@@ -931,7 +932,7 @@ export async function updateOrderStatus(
     order: Order;
   }>(`/orders/${orderId}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, note }),
+    body: JSON.stringify({ status, note, trackingUrl }),
   });
 }
 

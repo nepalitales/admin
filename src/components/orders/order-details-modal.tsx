@@ -32,6 +32,7 @@ interface OrderDetailsModalProps {
   onPrintBill?: (orderId: string) => void;
   onCancelOrder?: (order: Order) => void;
   onUpdateStatus?: (orderId: string, status: any) => void;
+  onBookCourier?: (order: Order) => void;
 }
 
 export function OrderDetailsModal({
@@ -41,6 +42,7 @@ export function OrderDetailsModal({
   onPrintBill,
   onCancelOrder,
   onUpdateStatus,
+  onBookCourier,
 }: OrderDetailsModalProps) {
   if (!order) return null;
 
@@ -112,10 +114,16 @@ export function OrderDetailsModal({
                     size="sm"
                     variant="secondary"
                     className="gap-1.5 text-xs h-8 bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30"
-                    onClick={() => onUpdateStatus(order.id, "out_for_delivery")}
+                    onClick={() => {
+                      if (onBookCourier) {
+                        onBookCourier(order);
+                      } else {
+                        onUpdateStatus(order.id, "out_for_delivery");
+                      }
+                    }}
                   >
                     <Truck className="h-3.5 w-3.5" />
-                    Out for Delivery
+                    Book Courier & Dispatch
                   </Button>
                 )}
                 <Button
@@ -140,6 +148,18 @@ export function OrderDetailsModal({
               </Button>
             )}
 
+            {!isPickup && onBookCourier && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-8 border-sky-500/40 text-sky-400 hover:bg-sky-500/10"
+                onClick={() => onBookCourier(order)}
+              >
+                <Truck className="h-3.5 w-3.5" />
+                Courier & WhatsApp
+              </Button>
+            )}
+
             {order.borzo?.trackingUrl && (
               <a href={order.borzo.trackingUrl} target="_blank" rel="noopener noreferrer">
                 <Button
@@ -148,7 +168,7 @@ export function OrderDetailsModal({
                   className="gap-1.5 text-xs h-8 text-emerald-400 hover:text-emerald-300 border-emerald-500/40"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  Live Porter Tracking
+                  Live Courier Tracking
                 </Button>
               </a>
             )}
@@ -191,8 +211,20 @@ export function OrderDetailsModal({
 
             {/* Delivery Box */}
             <div className="rounded-lg border border-border p-3.5 space-y-2 bg-card">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5" /> {isPickup ? "Pickup (kitchen)" : "Delivery Address"}
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> {isPickup ? "Pickup (kitchen)" : "Delivery Address"}
+                </span>
+                {!isPickup && onBookCourier && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    className="h-6 text-xs gap-1 border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                    onClick={() => onBookCourier(order)}
+                  >
+                    <Truck className="h-3 w-3" /> Book Borzo/Porter
+                  </Button>
+                )}
               </div>
               <div className="text-xs leading-relaxed">
                 {order.deliveryAddress.borzoFormat.address}
@@ -200,6 +232,19 @@ export function OrderDetailsModal({
               {order.deliveryAddress.borzoFormat.note && (
                 <div className="text-xs text-amber-500 bg-amber-500/10 p-1.5 rounded border border-amber-500/20">
                   <span className="font-semibold">Note:</span> {order.deliveryAddress.borzoFormat.note}
+                </div>
+              )}
+              {order.borzo?.trackingUrl && (
+                <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Tracking:</span>
+                  <a
+                    href={order.borzo.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-400 hover:underline flex items-center gap-1 font-mono text-[11px]"
+                  >
+                    Open Tracking Link <ExternalLink className="h-3 w-3" />
+                  </a>
                 </div>
               )}
             </div>
