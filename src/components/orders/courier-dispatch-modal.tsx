@@ -316,6 +316,14 @@ export function CourierDispatchModal({
                 Open Porter Web Booking
               </Button>
             </div>
+
+            {/* Self Delivery / Optional Notice */}
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 pt-0.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+              <span>
+                Borzo / Porter booking is <strong>optional</strong>. You can deliver using your own kitchen staff, personal bike, or any other courier service.
+              </span>
+            </p>
           </div>
 
           {/* ─── Step 2: Tracking & Customer Notification ──────── */}
