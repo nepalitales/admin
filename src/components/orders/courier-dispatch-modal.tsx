@@ -178,7 +178,7 @@ export function CourierDispatchModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto font-sans">
+      <DialogContent className="sm:max-w-3xl max-h-[92vh] overflow-y-auto font-sans p-5 sm:p-6">
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <div className="flex items-center gap-2">
@@ -223,66 +223,84 @@ export function CourierDispatchModal({
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {/* Pickup Point */}
-              <div className="rounded-lg bg-muted/40 p-2.5 border border-border/40 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold">
-                  <span>PICKUP (Kitchen Point)</span>
+              <div className="rounded-lg bg-muted/40 p-3.5 border border-border/40 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold pb-1">
+                    <span>PICKUP (Kitchen Point)</span>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="h-6 w-6"
+                      onClick={() => handleCopy(KITCHEN_ADDRESS, "pickup", "Pickup Address")}
+                    >
+                      {copiedKey === "pickup" ? (
+                        <Check className="h-3 w-3 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-foreground leading-relaxed text-[12px] font-medium">
+                    {KITCHEN_ADDRESS}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-border/20 text-[11px]">
+                  <span className="text-muted-foreground">
+                    Phone: <span className="text-foreground font-mono">{KITCHEN_PHONE}</span>
+                  </span>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className="h-6 w-6"
-                    onClick={() => handleCopy(KITCHEN_ADDRESS, "pickup", "Pickup Address")}
+                    className="h-5 w-5"
+                    onClick={() => handleCopy(KITCHEN_PHONE, "kitchenPhone", "Kitchen Phone")}
                   >
-                    {copiedKey === "pickup" ? (
-                      <Check className="h-3 w-3 text-emerald-400" />
+                    {copiedKey === "kitchenPhone" ? (
+                      <Check className="h-2.5 w-2.5 text-emerald-400" />
                     ) : (
-                      <Copy className="h-3 w-3" />
+                      <Copy className="h-2.5 w-2.5" />
                     )}
                   </Button>
                 </div>
-                <p className="text-foreground leading-relaxed text-[11.5px] font-medium">
-                  {KITCHEN_ADDRESS}
-                </p>
-                <p className="text-muted-foreground text-[11px]">
-                  Phone: <span className="text-foreground font-mono">{KITCHEN_PHONE}</span>
-                </p>
               </div>
 
               {/* Drop Point */}
-              <div className="rounded-lg bg-muted/40 p-2.5 border border-border/40 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold">
-                  <span>DROP-OFF (Customer)</span>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="h-6 w-6"
-                    onClick={() => handleCopy(dropAddress, "drop", "Customer Drop Address")}
-                  >
-                    {copiedKey === "drop" ? (
-                      <Check className="h-3 w-3 text-emerald-400" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </Button>
-                </div>
-                <p className="text-foreground leading-relaxed text-[11.5px] font-medium">
-                  {dropAddress}
-                </p>
-                {dropNote && (
-                  <p className="text-amber-400 text-[11px]">
-                    Note: <span className="text-muted-foreground">{dropNote}</span>
+              <div className="rounded-lg bg-muted/40 p-3.5 border border-border/40 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold pb-1">
+                    <span>DROP-OFF (Customer)</span>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="h-6 w-6"
+                      onClick={() => handleCopy(dropAddress, "drop", "Customer Drop Address")}
+                    >
+                      {copiedKey === "drop" ? (
+                        <Check className="h-3 w-3 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-foreground leading-relaxed text-[12px] font-medium">
+                    {dropAddress}
                   </p>
-                )}
-                <div className="flex items-center justify-between pt-0.5">
-                  <span className="text-muted-foreground">
+                  {dropNote && (
+                    <p className="text-amber-400 text-[11px] pt-1">
+                      Note: <span className="text-muted-foreground">{dropNote}</span>
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-border/20 text-[11px]">
+                  <span className="text-muted-foreground truncate mr-2">
                     {order.customer.name} (
                     <span className="text-foreground font-mono">{order.customer.phone}</span>)
                   </span>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className="h-5 w-5"
+                    className="h-5 w-5 shrink-0"
                     onClick={() => handleCopy(order.customer.phone, "phone", "Phone")}
                   >
                     {copiedKey === "phone" ? (
