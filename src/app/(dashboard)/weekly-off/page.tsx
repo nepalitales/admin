@@ -22,6 +22,11 @@ const DAY_FULL: Record<string, string> = {
   thursday: "Thursday", friday: "Friday", saturday: "Saturday",
 };
 
+const PREV_DAY: Record<string, string> = {
+  sunday: "saturday", monday: "sunday", tuesday: "monday", wednesday: "tuesday",
+  thursday: "wednesday", friday: "thursday", saturday: "friday",
+};
+
 export default function WeeklyOffPage() {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,13 +89,13 @@ export default function WeeklyOffPage() {
         </div>
         <ul className="space-y-1.5 list-disc list-inside text-muted-foreground dark:text-neutral-300">
           <li>
-            <strong className="text-foreground">Kitchen Cooking &amp; Dispatch Paused:</strong> On selected weekly off days, the kitchen is closed—no food is cooked, packed, or delivered.
+            <strong className="text-foreground">Kitchen Cooking &amp; Dispatch Paused:</strong> On selected weekly off days (e.g. Monday), the kitchen is closed—no food is cooked, packed, or delivered.
           </li>
           <li>
-            <strong className="text-foreground">Online Pre-Orders Still Accepted:</strong> Customers can still place orders on off days through the storefront. Orders are automatically scheduled for preparation and delivery on the <span className="underline font-medium text-foreground">next open operating day</span>.
+            <strong className="text-foreground">Order Window Closed the Day Before:</strong> Because customers place orders for next-day fulfillment, customer ordering is automatically <span className="underline font-semibold text-foreground">closed on the day before</span> (e.g. if the kitchen is closed on Monday, no orders are taken on Sunday).
           </li>
           <li>
-            <strong className="text-foreground">Automatic Date Skipping:</strong> The storefront calendar and checkout automatically skip weekly off days so no delivery window can be booked on a closed day.
+            <strong className="text-foreground">Ordering on the Off Day:</strong> During active intake hours on the off day itself (Monday), customers can place orders for Tuesday (the next operating day).
           </li>
         </ul>
       </div>
@@ -138,7 +143,11 @@ export default function WeeklyOffPage() {
                 <strong className="text-foreground">
                   {selectedDays.map((d) => DAY_FULL[d]).join(", ")}
                 </strong>
-                . Advance pre-orders placed on these days are fulfilled on the next open day.
+                . Customer ordering is automatically closed on{" "}
+                <strong className="text-foreground">
+                  {selectedDays.map((d) => DAY_FULL[PREV_DAY[d] || ""]).join(", ")}
+                </strong>
+                . Ordering resumes on {selectedDays.map((d) => DAY_FULL[d]).join(", ")} for next operating day dispatches.
               </p>
             )}
           </div>

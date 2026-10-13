@@ -73,6 +73,16 @@ const DAY_SHORT: Record<string, string> = {
   saturday: "Sat",
 };
 
+const NEXT_DAY_MAP: Record<string, string> = {
+  sunday: "monday",
+  monday: "tuesday",
+  tuesday: "wednesday",
+  wednesday: "thursday",
+  thursday: "friday",
+  friday: "saturday",
+  saturday: "sunday",
+};
+
 function calculateDuration(start: string, end: string): string {
   if (!start || !end || start >= end) return "";
   const [sh, sm] = start.split(":").map(Number);
@@ -367,6 +377,8 @@ export default function OrderWindowsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {windows.map((day) => {
           const isWeeklyOff = weeklyOff.includes(day.day);
+          const nextDay = NEXT_DAY_MAP[day.day] || "";
+          const isEveOfWeeklyOff = weeklyOff.includes(nextDay);
           const hasSlots = day.enabled && day.windows.length > 0;
 
           return (
@@ -375,6 +387,8 @@ export default function OrderWindowsPage() {
               className={`transition-all ${
                 isWeeklyOff
                   ? "opacity-75 border-dashed bg-muted/20 cursor-pointer hover:border-destructive/40 hover:bg-destructive/5"
+                  : isEveOfWeeklyOff
+                  ? "border-amber-500/40 bg-amber-500/5 cursor-pointer hover:border-amber-500/60"
                   : "cursor-pointer hover:border-primary/50 hover:shadow-md"
               }`}
               onClick={() => handleCardClick(day)}
@@ -383,7 +397,9 @@ export default function OrderWindowsPage() {
                 <div>
                   <CardTitle className="text-base font-semibold">{DAY_LABELS[day.day]}</CardTitle>
                   <span className="text-[11px] text-muted-foreground">
-                    {day.enabled
+                    {isEveOfWeeklyOff
+                      ? "Intake Paused (Kitchen Off Tomorrow)"
+                      : day.enabled
                       ? `${day.windows.length} intake window${day.windows.length === 1 ? "" : "s"}${isWeeklyOff ? " (Next-day)" : ""}`
                       : "Intake Closed"}
                   </span>
@@ -397,8 +413,16 @@ export default function OrderWindowsPage() {
                       Kitchen Off
                     </Badge>
                   )}
-                  <Badge variant={day.enabled ? "default" : "secondary"} className="text-xs">
-                    {day.enabled ? "Intake Open" : "Closed"}
+                  {isEveOfWeeklyOff && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-amber-500/50 text-amber-600 dark:text-amber-400 bg-amber-500/10 font-medium"
+                    >
+                      Kitchen Closed Tomorrow
+                    </Badge>
+                  )}
+                  <Badge variant={isEveOfWeeklyOff ? "secondary" : day.enabled ? "default" : "secondary"} className="text-xs">
+                    {isEveOfWeeklyOff ? "Intake Paused" : day.enabled ? "Intake Open" : "Closed"}
                   </Badge>
                 </div>
               </CardHeader>
@@ -408,6 +432,12 @@ export default function OrderWindowsPage() {
                   <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
                     <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-600" />
                     <span>Kitchen closed today. Pre-orders taken for next operating day.</span>
+                  </div>
+                )}
+                {isEveOfWeeklyOff && (
+                  <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
+                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                    <span>Ordering closed on this day (kitchen closed tomorrow on {DAY_LABELS[nextDay]}).</span>
                   </div>
                 )}
                 {hasSlots ? (
