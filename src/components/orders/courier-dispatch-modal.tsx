@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,13 @@ export function CourierDispatchModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Auto-populate tracking link from existing order data when modal opens
+  useEffect(() => {
+    if (open && order) {
+      setTrackingUrl(order.borzo?.trackingUrl || "");
+    }
+  }, [open, order]);
+
   const cleanPhone = useMemo(() => {
     if (!order?.customer.phone) return "";
     const digits = order.customer.phone.replace(/\D/g, "");
@@ -103,25 +110,30 @@ export function CourierDispatchModal({
     );
   }, [order, dropAddress, dropNote, itemsSummary]);
 
-  const whatsappMessage = useMemo(() => {
+  const activeTrackingUrl = useMemo(() => {
+    const raw = trackingUrl.trim() || order?.borzo?.trackingUrl?.trim() || "";
+    return normalizeTrackingUrl(raw);
+  }, [trackingUrl, order]);
+
+  // Clean, professional customer dispatch notification with ZERO emojis and live tracking
+  const notificationMessage = useMemo(() => {
     if (!order) return "";
-    const cleanTrack = normalizeTrackingUrl(trackingUrl);
-    const track = cleanTrack
-      ? `\n📍 *Live Courier Tracking:*\n${cleanTrack}\n`
+    const track = activeTrackingUrl
+      ? `\n*Live Courier Tracking:*\n${activeTrackingUrl}\n`
       : "";
 
     return (
-      `🥟 *Nepali Tales — Your Order is Out for Delivery!*\n\n` +
+      `*Nepali Tales — Your Order is Out for Delivery!*\n\n` +
       `Namaste *${order.customer.name}*!\n` +
       `Your artisanal momo order *#${order.orderNumber}* is freshly packed and on its way via Borzo/Porter courier.\n` +
       track +
-      `\n📦 *Drop Location:*\n${dropAddress}\n` +
+      `\n*Drop Location:*\n${dropAddress}\n` +
       (dropNote ? `Note: ${dropNote}\n` : "") +
-      `\nℹ️ *Delivery Fee:* As per policy, courier delivery charges are paid directly to the delivery rider upon arrival.\n\n` +
+      `\n*Delivery Fee:* As per policy, courier delivery charges are paid directly to the delivery rider upon arrival.\n\n` +
       `Enjoy your hot meal!\n` +
       `*Nepali Tales Cloud Kitchen*`
     );
-  }, [order, trackingUrl, dropAddress, dropNote]);
+  }, [order, activeTrackingUrl, dropAddress, dropNote]);
 
   const handleCopy = (text: string, key: string, label: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -145,7 +157,7 @@ export function CourierDispatchModal({
       toast.error("Customer phone number is missing.");
       return;
     }
-    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(whatsappMessage)}`;
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(notificationMessage)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -154,7 +166,7 @@ export function CourierDispatchModal({
       toast.error("Customer phone number is missing.");
       return;
     }
-    const url = `sms:${order.customer.phone}?body=${encodeURIComponent(whatsappMessage)}`;
+    const url = `sms:${order.customer.phone}?body=${encodeURIComponent(notificationMessage)}`;
     window.location.href = url;
   };
 
@@ -162,7 +174,7 @@ export function CourierDispatchModal({
     if (!order) return;
     setIsSubmitting(true);
     try {
-      const cleanTrack = normalizeTrackingUrl(trackingUrl);
+      const cleanTrack = activeTrackingUrl;
       const res = await updateOrderStatus(
         order.id,
         "out_for_delivery",
@@ -371,6 +383,15 @@ export function CourierDispatchModal({
                 onChange={(e) => setTrackingUrl(e.target.value)}
                 className="h-8 text-xs font-mono"
               />
+              {activeTrackingUrl ? (
+                <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1 pt-0.5">
+                  <Check className="h-3 w-3" /> Live courier tracking link included in WhatsApp & SMS message
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-0.5">
+                  <AlertCircle className="h-3 w-3 text-amber-400" /> Enter or paste courier tracking link above to attach it to customer WhatsApp & SMS
+                </p>
+              )}
             </div>
 
             {/* Quick Notify Buttons */}
@@ -400,7 +421,7 @@ export function CourierDispatchModal({
                 variant="ghost"
                 size="sm"
                 className="h-8 text-xs gap-1.5 text-muted-foreground"
-                onClick={() => handleCopy(whatsappMessage, "msg", "Notification Message")}
+                onClick={() => handleCopy(notificationMessage, "msg", "Notification Message")}
               >
                 {copiedKey === "msg" ? (
                   <Check className="h-3.5 w-3.5 text-emerald-400" />
