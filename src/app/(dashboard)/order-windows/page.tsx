@@ -408,7 +408,7 @@ export default function OrderWindowsPage() {
                   {isWeeklyOff && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10"
+                      className="text-[10px] border-amber-500/40 text-amber-500 bg-amber-500/10"
                     >
                       Kitchen Off
                     </Badge>
@@ -416,7 +416,7 @@ export default function OrderWindowsPage() {
                   {isEveOfWeeklyOff && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] border-amber-500/50 text-amber-600 dark:text-amber-400 bg-amber-500/10 font-medium"
+                      className="text-[10px] border-amber-500/50 text-amber-500 bg-amber-500/10 font-medium"
                     >
                       Kitchen Closed Tomorrow
                     </Badge>
@@ -429,14 +429,14 @@ export default function OrderWindowsPage() {
 
               <CardContent className="space-y-2">
                 {isWeeklyOff && (
-                  <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
-                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <div className="text-[11px] text-foreground bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
+                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-500" />
                     <span>Kitchen closed today. Pre-orders taken for next operating day.</span>
                   </div>
                 )}
                 {isEveOfWeeklyOff && (
-                  <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
-                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <div className="text-[11px] text-foreground bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
+                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-500" />
                     <span>Ordering closed on this day (kitchen closed tomorrow on {DAY_LABELS[nextDay]}).</span>
                   </div>
                 )}
@@ -516,8 +516,8 @@ export default function OrderWindowsPage() {
           </DialogHeader>
 
           {editDay && weeklyOff.includes(editDay.day) && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-              <CalendarOff className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-foreground flex items-start gap-2.5">
+              <CalendarOff className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
               <div className="space-y-1">
                 <p className="font-semibold text-xs leading-none">Kitchen dispatch is off on {DAY_LABELS[editDay.day]}s</p>
                 <p className="text-xs text-muted-foreground">
