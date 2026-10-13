@@ -75,7 +75,7 @@ export function WeeklyOffDialog({
               </Badge>
             </div>
             <p className="text-muted-foreground text-[11px] leading-relaxed">
-              During Weekly Off days, checkout is closed and delivery windows are not bookable by customers.
+              On Weekly Off days, the kitchen does not cook or deliver food (dispatch windows are not bookable). However, online ordering remains active on the storefront for advance pre-orders scheduled for the next open operating day.
             </p>
             {day.slots && day.slots.length > 0 && (
               <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground flex items-center justify-between">

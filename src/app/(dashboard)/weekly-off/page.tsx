@@ -68,18 +68,38 @@ export default function WeeklyOffPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Weekly Off</h2>
-        <p className="text-muted-foreground">
-          Set recurring days when the kitchen does not cook or deliver food. Online advance pre-orders for the next operating day are still accepted.
+        <h2 className="text-2xl font-bold tracking-tight">Kitchen Weekly Off</h2>
+        <p className="text-muted-foreground text-sm">
+          Set recurring days when the kitchen does not cook or deliver food. Online advance pre-orders for the next operating day remain accepted.
         </p>
       </div>
 
-      <Card className="max-w-lg">
+      {/* ── Operational Architecture Info Card ── */}
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs space-y-2.5 text-amber-900 dark:text-amber-200">
+        <div className="font-semibold text-sm flex items-center gap-2">
+          <span>🍲 How Kitchen Weekly Off Works</span>
+        </div>
+        <ul className="space-y-1.5 list-disc list-inside text-muted-foreground dark:text-neutral-300">
+          <li>
+            <strong className="text-foreground">Kitchen Cooking &amp; Dispatch Paused:</strong> On selected weekly off days, the kitchen is closed—no food is cooked, packed, or delivered.
+          </li>
+          <li>
+            <strong className="text-foreground">Online Pre-Orders Still Accepted:</strong> Customers can still place orders on off days through the storefront. Orders are automatically scheduled for preparation and delivery on the <span className="underline font-medium text-foreground">next open operating day</span>.
+          </li>
+          <li>
+            <strong className="text-foreground">Automatic Date Skipping:</strong> The storefront calendar and checkout automatically skip weekly off days so no delivery window can be booked on a closed day.
+          </li>
+        </ul>
+      </div>
+
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Select Off Days</CardTitle>
-          <CardDescription>Click on a day to toggle it. Kitchen cooking and delivery dispatches will be paused on these days.</CardDescription>
+          <CardDescription>
+            Click on a day to toggle it. Kitchen cooking and delivery dispatches will be paused on these days.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -91,23 +111,35 @@ export default function WeeklyOffPage() {
                   type="button"
                   onClick={() => toggleDay(day)}
                   className={`
-                    inline-flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-all
+                    inline-flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-all cursor-pointer
                     ${isSelected
-                      ? "border-destructive/50 bg-destructive/10 text-destructive"
+                      ? "border-destructive/60 bg-destructive/15 text-destructive font-semibold shadow-xs"
                       : "border-border bg-card text-foreground hover:bg-accent"
                     }
                   `}
                 >
                   {DAY_FULL[day]}
+                  {isSelected && <span className="ml-1.5 text-xs text-destructive">✕</span>}
                 </button>
               );
             })}
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            {selectedDays.length === 0
-              ? "No weekly off — kitchen delivers every day."
-              : `Kitchen dispatch closed every: ${selectedDays.map((d) => DAY_FULL[d]).join(", ")} (Advance pre-orders will be scheduled for next open operating day)`}
+          <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/40 border border-border/50 space-y-1">
+            <div className="font-medium text-foreground">Current Operating Schedule:</div>
+            {selectedDays.length === 0 ? (
+              <p className="text-emerald-600 dark:text-emerald-400 font-medium">
+                ✓ No weekly off configured — kitchen cooks and delivers all 7 days.
+              </p>
+            ) : (
+              <p>
+                Kitchen cooking &amp; dispatch closed every:{" "}
+                <strong className="text-foreground">
+                  {selectedDays.map((d) => DAY_FULL[d]).join(", ")}
+                </strong>
+                . Advance pre-orders placed on these days are fulfilled on the next open day.
+              </p>
+            )}
           </div>
 
           <Button onClick={handleSave} disabled={saving}>

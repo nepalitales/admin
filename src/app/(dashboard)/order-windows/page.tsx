@@ -167,12 +167,7 @@ export default function OrderWindowsPage() {
   };
 
   const handleCardClick = (day: OrderWindow) => {
-    const isWeeklyOff = weeklyOff.includes(day.day);
-    if (isWeeklyOff) {
-      setWeeklyOffModalDay(day);
-    } else {
-      openEdit(day);
-    }
+    openEdit(day);
   };
 
   // Open individual edit dialog
@@ -388,39 +383,34 @@ export default function OrderWindowsPage() {
                 <div>
                   <CardTitle className="text-base font-semibold">{DAY_LABELS[day.day]}</CardTitle>
                   <span className="text-[11px] text-muted-foreground">
-                    {isWeeklyOff
-                      ? "Weekly closure active"
-                      : day.enabled
-                      ? `${day.windows.length} intake window${day.windows.length === 1 ? "" : "s"}`
-                      : "Closed"}
+                    {day.enabled
+                      ? `${day.windows.length} intake window${day.windows.length === 1 ? "" : "s"}${isWeeklyOff ? " (Next-day)" : ""}`
+                      : "Intake Closed"}
                   </span>
                 </div>
-                {isWeeklyOff ? (
-                  <Badge
-                    variant="outline"
-                    className="text-xs border-destructive/30 text-destructive bg-destructive/10"
-                  >
-                    Weekly Off
-                  </Badge>
-                ) : (
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  {isWeeklyOff && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10"
+                    >
+                      Kitchen Off
+                    </Badge>
+                  )}
                   <Badge variant={day.enabled ? "default" : "secondary"} className="text-xs">
-                    {day.enabled ? "Open" : "Closed"}
+                    {day.enabled ? "Intake Open" : "Closed"}
                   </Badge>
-                )}
+                </div>
               </CardHeader>
 
               <CardContent className="space-y-2">
-                {isWeeklyOff ? (
-                  <div className="space-y-1.5 py-1">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <CalendarOff className="h-3.5 w-3.5 text-destructive/80" />
-                      <span>Closed every {DAY_LABELS[day.day]}</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/70">
-                      Managed in Weekly Off
-                    </p>
+                {isWeeklyOff && (
+                  <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
+                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                    <span>Kitchen closed today. Pre-orders taken for next operating day.</span>
                   </div>
-                ) : hasSlots ? (
+                )}
+                {hasSlots ? (
                   <div className="space-y-1.5">
                     {day.windows.map((w, i) => (
                       <div
@@ -720,7 +710,7 @@ export default function OrderWindowsPage() {
                 </Badge>
               </div>
               <p className="text-muted-foreground text-[11px] leading-relaxed">
-                During Weekly Off days, customers cannot place orders or schedule deliveries. Ordering time slots cannot be active for this day.
+                On Weekly Off days, the kitchen does not cook or deliver food. However, online ordering can remain open—customers can place advance pre-orders for delivery on the next open operating day.
               </p>
               {weeklyOffModalDay?.windows && weeklyOffModalDay.windows.length > 0 && (
                 <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
