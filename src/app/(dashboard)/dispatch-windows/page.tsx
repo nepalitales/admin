@@ -9,9 +9,11 @@ import {
   getDispatchCapacity,
   getWeeklyOff,
   updateWeeklyOff,
+  getOrderWindows,
   type DispatchWindow,
   type DispatchSlot,
   type DispatchCapacityResponse,
+  type OrderWindow,
   ApiError,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -41,6 +43,7 @@ export default function DispatchWindowsPage() {
   const [viewMode, setViewMode] = useState<"summary" | "expanded">("summary");
   const [windows, setWindows] = useState<DispatchWindow[]>([]);
   const [weeklyOff, setWeeklyOff] = useState<string[]>([]);
+  const [orderWindows, setOrderWindows] = useState<OrderWindow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ─── Modal States ──────────────────────────────────────────────
@@ -57,13 +60,17 @@ export default function DispatchWindowsPage() {
   // ─── Data Fetching ─────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     try {
-      const [res, offRes] = await Promise.all([
+      const [res, offRes, orderRes] = await Promise.all([
         getDispatchWindows(),
         getWeeklyOff().catch(() => ({ success: true as const, weeklyOff: [] })),
+        getOrderWindows().catch(() => ({ success: true as const, orderWindows: [] })),
       ]);
       setWindows(res.dispatchWindows);
       if ("weeklyOff" in offRes && Array.isArray(offRes.weeklyOff)) {
         setWeeklyOff(offRes.weeklyOff);
+      }
+      if ("orderWindows" in orderRes && Array.isArray(orderRes.orderWindows)) {
+        setOrderWindows(orderRes.orderWindows);
       }
     } catch {
       toast.error("Failed to load dispatch windows");
@@ -98,6 +105,18 @@ export default function DispatchWindowsPage() {
   const operatingDays = useMemo(() => {
     return ALL_DAYS.filter((d) => !weeklyOff.includes(d));
   }, [weeklyOff]);
+
+  // Map of daily intake order window capacities (e.g. Sunday: 150)
+  const orderWindowCaps = useMemo(() => {
+    const caps: Record<string, number> = {};
+    for (const ow of orderWindows) {
+      if (ow.enabled && ow.windows && ow.windows.length > 0) {
+        const total = ow.windows.reduce((sum, w) => sum + (w.maxOrders || 0), 0);
+        caps[ow.day] = total;
+      }
+    }
+    return caps;
+  }, [orderWindows]);
 
   // ─── Operational Metrics Summary ──────────────────────────────
   const operationalStats = useMemo(() => {
@@ -399,6 +418,7 @@ export default function DispatchWindowsPage() {
         allWindows={windows}
         weeklyOff={weeklyOff}
         operatingDays={operatingDays}
+        orderWindowCap={editDay ? orderWindowCaps[editDay.day] || 0 : 0}
         onSave={handleSaveIndividual}
         onReopenWeeklyOff={handleReopenWeeklyOff}
         onSelectDay={(newDay) => setEditDay(newDay)}

@@ -24,6 +24,7 @@ import {
   calculateDuration,
   checkSlotConflicts,
   generateTimeSlots,
+  distributeCapacityEqually,
 } from "./types";
 import { toast } from "sonner";
 
@@ -31,23 +32,35 @@ interface SlotManagerProps {
   slots: DispatchSlot[];
   onChange: (slots: DispatchSlot[]) => void;
   dayLabel?: string;
+  orderWindowCap?: number;
 }
 
-export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
+export function SlotManager({ slots, onChange, dayLabel, orderWindowCap }: SlotManagerProps) {
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
   const [bulkCapacityInput, setBulkCapacityInput] = useState<number | "">("");
 
-  // Custom partition inputs (no default times or capacities)
+  // Custom partition inputs
   const [genStart, setGenStart] = useState("");
   const [genEnd, setGenEnd] = useState("");
   const [genInterval, setGenInterval] = useState<number>(60);
+  const [capacityMode, setCapacityMode] = useState<"total" | "per_slot">("total");
+  const [genTotalOrders, setGenTotalOrders] = useState<number | "">(
+    orderWindowCap && orderWindowCap > 0 ? orderWindowCap : ""
+  );
   const [genCapacity, setGenCapacity] = useState<number | "">("");
 
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const conflicts = checkSlotConflicts(slots);
   const hasErrors = Object.keys(conflicts).length > 0;
+
+  // Sync total orders if orderWindowCap becomes available
+  React.useEffect(() => {
+    if (orderWindowCap && orderWindowCap > 0 && !genTotalOrders) {
+      setGenTotalOrders(orderWindowCap);
+    }
+  }, [orderWindowCap, genTotalOrders]);
 
   // ─── Actions ────────────────────────────────────────────────────────
 
@@ -112,19 +125,32 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
       toast.error("Start time must be before end time.");
       return;
     }
-    const cap = Number(genCapacity) || 0;
-    if (cap < 1) {
-      toast.error("Please specify capacity per slot (minimum 1).");
-      return;
+
+    let generated: DispatchSlot[] = [];
+    if (capacityMode === "total") {
+      const total = Number(genTotalOrders) || 0;
+      if (total < 1) {
+        toast.error("Please specify total orders (minimum 1).");
+        return;
+      }
+      generated = generateTimeSlots(genStart, genEnd, genInterval, { totalCapacity: total });
+    } else {
+      const cap = Number(genCapacity) || 0;
+      if (cap < 1) {
+        toast.error("Please specify capacity per slot (minimum 1).");
+        return;
+      }
+      generated = generateTimeSlots(genStart, genEnd, genInterval, { capacityPerSlot: cap });
     }
-    const generated = generateTimeSlots(genStart, genEnd, genInterval, cap);
+
     if (generated.length === 0) {
       toast.error("Could not generate slots with those bounds.");
       return;
     }
     onChange(generated);
     setShowGenerator(false);
-    toast.success(`Generated ${generated.length} slots successfully!`);
+    const sumCap = generated.reduce((acc, s) => acc + (s.maxCapacity || 0), 0);
+    toast.success(`Generated ${generated.length} slots totaling ${sumCap} max orders!`);
   };
 
   const handleTimelineSlotClick = (index: number) => {
@@ -138,6 +164,34 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
   const totalCapacity = slots.reduce((acc, s) => acc + (s.maxCapacity || 0), 0);
   const activeCount = slots.filter((s) => s.isActive !== false).length;
 
+  // Dynamic preview for slot division
+  const previewSlotCount = (() => {
+    if (!genStart || !genEnd || genStart >= genEnd || genInterval <= 0) return 0;
+    const [sh, sm] = genStart.split(":").map(Number);
+    const [eh, em] = genEnd.split(":").map(Number);
+    if (sh === undefined || sm === undefined || eh === undefined || em === undefined) return 0;
+    const totalMinutes = eh * 60 + em - (sh * 60 + sm);
+    return Math.floor(totalMinutes / genInterval);
+  })();
+
+  const previewDistribution = (() => {
+    if (capacityMode !== "total" || previewSlotCount <= 0 || !genTotalOrders) return null;
+    const total = Number(genTotalOrders);
+    if (total <= 0) return null;
+    const base = Math.floor(total / previewSlotCount);
+    const rem = total % previewSlotCount;
+    return {
+      total,
+      slots: previewSlotCount,
+      base,
+      rem,
+      slotsWithExtra: rem,
+      extraCap: base + 1,
+      standardSlots: previewSlotCount - rem,
+      standardCap: base,
+    };
+  })();
+
   return (
     <div className="space-y-4">
       {/* ─── Visual Timeline ────────────────────────────────────── */}
@@ -150,8 +204,8 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
 
       {/* ─── Action & Tool Strip ────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 rounded-xl border border-border/70 bg-card/50">
-        {/* Left: Quick Batch Capacity */}
-        <div className="flex items-center gap-2">
+        {/* Left: Quick Batch Capacity & Intake Cap Sync */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span>Set capacity for all slots:</span>
             <Input
@@ -177,6 +231,26 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
               Apply
             </Button>
           </div>
+
+          {/* Quick 1-Click Divide for Intake Cap */}
+          {orderWindowCap !== undefined && orderWindowCap > 0 && slots.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const updated = distributeCapacityEqually(slots, orderWindowCap);
+                onChange(updated);
+                toast.success(
+                  `Equally divided ${orderWindowCap} order cap across ${activeCount} active slots!`
+                );
+              }}
+              className="h-7 text-xs px-2.5 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Sparkles className="h-3 w-3" />
+              Divide Intake Cap ({orderWindowCap})
+            </Button>
+          )}
         </div>
 
         {/* Right: Custom Partition & Add Slot */}
@@ -220,7 +294,7 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
                 Auto-Partition Dispatch Hours
               </h4>
               <p className="text-[11px] text-muted-foreground">
-                Divide your dispatch hours into equal delivery intervals with custom order capacities.
+                Divide your dispatch hours into delivery intervals and distribute your target order cap.
               </p>
             </div>
 
@@ -233,6 +307,32 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
             >
               Close
             </Button>
+          </div>
+
+          {/* Mode Selector */}
+          <div className="flex items-center gap-1 p-0.5 bg-muted/60 rounded-lg w-fit text-xs border border-border/50">
+            <button
+              type="button"
+              onClick={() => setCapacityMode("total")}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                capacityMode === "total"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Divide Total Orders (e.g. {orderWindowCap || 150} cap)
+            </button>
+            <button
+              type="button"
+              onClick={() => setCapacityMode("per_slot")}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                capacityMode === "per_slot"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Fixed Orders / Slot
+            </button>
           </div>
 
           {/* Custom controls */}
@@ -269,21 +369,76 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
                 <option value={120}>2 hours</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Orders / Slot</Label>
-              <Input
-                type="number"
-                min={1}
-                max={500}
-                value={genCapacity}
-                onChange={(e) =>
-                  setGenCapacity(e.target.value ? parseInt(e.target.value, 10) : "")
-                }
-                placeholder="Qty"
-                className="h-8 text-xs font-bold text-center"
-              />
-            </div>
+
+            {capacityMode === "total" ? (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px]">Total Target Orders</Label>
+                  {orderWindowCap !== undefined && orderWindowCap > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setGenTotalOrders(orderWindowCap)}
+                      className="text-[10px] text-primary hover:underline font-semibold"
+                    >
+                      Use Cap ({orderWindowCap})
+                    </button>
+                  )}
+                </div>
+                <Input
+                  type="number"
+                  min={1}
+                  max={5000}
+                  value={genTotalOrders}
+                  onChange={(e) =>
+                    setGenTotalOrders(e.target.value ? parseInt(e.target.value, 10) : "")
+                  }
+                  placeholder={orderWindowCap ? String(orderWindowCap) : "150"}
+                  className="h-8 text-xs font-bold text-center"
+                />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-[11px]">Orders / Slot</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={genCapacity}
+                  onChange={(e) =>
+                    setGenCapacity(e.target.value ? parseInt(e.target.value, 10) : "")
+                  }
+                  placeholder="Qty"
+                  className="h-8 text-xs font-bold text-center"
+                />
+              </div>
+            )}
           </div>
+
+          {/* Dynamic Preview */}
+          {previewDistribution && (
+            <div className="text-[11px] p-2.5 rounded-lg bg-primary/10 border border-primary/20 text-foreground flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="font-semibold text-primary">Division Preview: </span>
+                {previewDistribution.rem === 0 ? (
+                  <span>
+                    {previewDistribution.slots} slots × {previewDistribution.standardCap} orders ={" "}
+                    <strong>{previewDistribution.total} total orders</strong>
+                  </span>
+                ) : (
+                  <span>
+                    {previewDistribution.slotsWithExtra} slots × {previewDistribution.extraCap} orders +{" "}
+                    {previewDistribution.standardSlots} slots × {previewDistribution.standardCap} orders ={" "}
+                    <strong>{previewDistribution.total} total orders</strong>
+                  </span>
+                )}
+              </div>
+              {orderWindowCap !== undefined && Number(genTotalOrders) === orderWindowCap && (
+                <span className="text-[10px] text-emerald-400 font-semibold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                  ✓ Matches Intake Cap
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end pt-1">
             <Button
@@ -298,6 +453,7 @@ export function SlotManager({ slots, onChange, dayLabel }: SlotManagerProps) {
           </div>
         </div>
       )}
+
 
       {/* ─── Validation Error Banner ────────────────────────────── */}
       {hasErrors && (

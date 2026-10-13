@@ -157,12 +157,41 @@ export function validateDispatchSlots(slots: DispatchSlot[]): string | null {
   return null;
 }
 
+/**
+ * Evenly distributes a target total capacity across all active slots.
+ * Handles remainders gracefully by distributing extra +1s to early slots,
+ * guaranteeing the sum of slot capacities equals totalCapacity exactly.
+ *
+ * Example: 150 orders / 7 slots => 22, 22, 22, 21, 21, 21, 21 (sum = 150)
+ */
+export function distributeCapacityEqually(
+  slots: DispatchSlot[],
+  totalCapacity: number,
+): DispatchSlot[] {
+  const activeSlots = slots.filter((s) => s.isActive !== false);
+  if (activeSlots.length === 0 || totalCapacity <= 0) return slots;
+
+  const base = Math.floor(totalCapacity / activeSlots.length);
+  const remainder = totalCapacity % activeSlots.length;
+
+  let activeIndex = 0;
+  return slots.map((s) => {
+    if (s.isActive === false) return s;
+    const slotCap = base + (activeIndex < remainder ? 1 : 0);
+    activeIndex++;
+    return {
+      ...s,
+      maxCapacity: slotCap,
+    };
+  });
+}
+
 /** Auto-partition generator */
 export function generateTimeSlots(
   startStr: string,
   endStr: string,
   intervalMinutes: number,
-  defaultCapacity: number,
+  capacityConfig: number | { totalCapacity: number } | { capacityPerSlot: number },
 ): DispatchSlot[] {
   const [sh, sm] = startStr.split(":").map(Number);
   const [eh, em] = endStr.split(":").map(Number);
@@ -196,12 +225,23 @@ export function generateTimeSlots(
       start: startFormatted,
       end: endFormatted,
       label,
-      maxCapacity: defaultCapacity,
+      maxCapacity: typeof capacityConfig === "number" ? capacityConfig : 0,
       isActive: true,
     });
 
     current += intervalMinutes;
   }
 
+  // Handle total capacity distribution across generated slots
+  if (typeof capacityConfig === "object") {
+    if ("totalCapacity" in capacityConfig && capacityConfig.totalCapacity > 0) {
+      return distributeCapacityEqually(slots, capacityConfig.totalCapacity);
+    }
+    if ("capacityPerSlot" in capacityConfig && capacityConfig.capacityPerSlot > 0) {
+      return slots.map((s) => ({ ...s, maxCapacity: capacityConfig.capacityPerSlot }));
+    }
+  }
+
   return slots;
 }
+

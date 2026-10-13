@@ -6,7 +6,7 @@ import { getWeeklyOff, updateWeeklyOff, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 
 const ALL_DAYS = [
   "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
@@ -79,7 +79,8 @@ export default function WeeklyOffPage() {
       {/* ── Operational Architecture Info Card ── */}
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs space-y-2.5 text-amber-900 dark:text-amber-200">
         <div className="font-semibold text-sm flex items-center gap-2">
-          <span>🍲 How Kitchen Weekly Off Works</span>
+          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <span>How Kitchen Weekly Off Works</span>
         </div>
         <ul className="space-y-1.5 list-disc list-inside text-muted-foreground dark:text-neutral-300">
           <li>

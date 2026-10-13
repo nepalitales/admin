@@ -26,7 +26,7 @@ import {
   Layers,
 } from "lucide-react";
 import Link from "next/link";
-import { ALL_DAYS, DAY_LABELS, DAY_SHORT, calculateDayStats, validateDispatchSlots } from "./types";
+import { ALL_DAYS, DAY_LABELS, DAY_SHORT, calculateDayStats, validateDispatchSlots, distributeCapacityEqually } from "./types";
 import { SlotManager } from "./SlotManager";
 
 interface SlotConfigDialogProps {
@@ -36,6 +36,7 @@ interface SlotConfigDialogProps {
   allWindows: DispatchWindow[];
   weeklyOff: string[];
   operatingDays: string[];
+  orderWindowCap?: number;
   onSave: (
     dayName: string,
     enabled: boolean,
@@ -53,6 +54,7 @@ export function SlotConfigDialog({
   allWindows,
   weeklyOff,
   operatingDays,
+  orderWindowCap,
   onSave,
   onReopenWeeklyOff,
   onSelectDay,
@@ -139,7 +141,7 @@ export function SlotConfigDialog({
 
             {/* Quick summary metrics */}
             {enabled && (
-              <div className="flex items-center gap-2 self-start sm:self-auto text-xs bg-muted/40 px-3 py-1.5 rounded-lg border border-border/60">
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto text-xs bg-muted/40 px-3 py-1.5 rounded-lg border border-border/60">
                 <span className="text-muted-foreground">
                   <strong className="text-foreground">{stats.activeSlotCount}</strong> slots
                 </span>
@@ -147,6 +149,35 @@ export function SlotConfigDialog({
                 <span className="text-muted-foreground">
                   <strong className="text-primary">{stats.totalCapacity}</strong> max orders
                 </span>
+                {orderWindowCap !== undefined && orderWindowCap > 0 && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    {stats.totalCapacity === orderWindowCap ? (
+                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <Check className="h-3.5 w-3.5" /> Matches Order Cap ({orderWindowCap})
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-amber-400 font-medium">
+                          Intake Cap: {orderWindowCap} (
+                          {orderWindowCap - stats.totalCapacity > 0
+                            ? `${orderWindowCap - stats.totalCapacity} unallocated`
+                            : `${stats.totalCapacity - orderWindowCap} over`}
+                          )
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSlots(distributeCapacityEqually(slots, orderWindowCap))}
+                          className="h-5 px-1.5 text-[10px] text-primary hover:bg-primary/10"
+                        >
+                          Sync to {orderWindowCap}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -288,6 +319,7 @@ export function SlotConfigDialog({
                 slots={slots}
                 onChange={setSlots}
                 dayLabel={dayName}
+                orderWindowCap={orderWindowCap}
               />
             )}
 
