@@ -40,6 +40,14 @@ const KITCHEN_ADDRESS =
   "Metropolis Rivera, Shop No 10, Kasarvadavali, Opp to Laxmi Narayan Mandir, Thane 400615";
 const KITCHEN_PHONE = "917678097659";
 
+function normalizeTrackingUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^(https?:\/\/|tel:|mailto:)/i.test(trimmed)) return trimmed;
+  if (/^\+?\d{10,15}$/.test(trimmed.replace(/[\s-]/g, ""))) return `tel:${trimmed.replace(/[\s-]/g, "")}`;
+  return `https://${trimmed}`;
+}
+
 export function CourierDispatchModal({
   order,
   open,
@@ -97,8 +105,9 @@ export function CourierDispatchModal({
 
   const whatsappMessage = useMemo(() => {
     if (!order) return "";
-    const track = trackingUrl.trim()
-      ? `\n📍 *Live Courier Tracking:*\n${trackingUrl.trim()}\n`
+    const cleanTrack = normalizeTrackingUrl(trackingUrl);
+    const track = cleanTrack
+      ? `\n📍 *Live Courier Tracking:*\n${cleanTrack}\n`
       : "";
 
     return (
@@ -153,13 +162,14 @@ export function CourierDispatchModal({
     if (!order) return;
     setIsSubmitting(true);
     try {
+      const cleanTrack = normalizeTrackingUrl(trackingUrl);
       const res = await updateOrderStatus(
         order.id,
         "out_for_delivery",
-        trackingUrl.trim()
-          ? `Dispatched via courier with tracking: ${trackingUrl.trim()}`
+        cleanTrack
+          ? `Dispatched via courier with tracking: ${cleanTrack}`
           : "Dispatched via Borzo/Porter courier",
-        trackingUrl.trim() || undefined,
+        cleanTrack || undefined,
       );
 
       toast.success(

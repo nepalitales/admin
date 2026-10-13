@@ -35,6 +35,15 @@ interface OrderDetailsModalProps {
   onBookCourier?: (order: Order) => void;
 }
 
+function normalizeTrackingUrl(url?: string | null): string {
+  if (!url) return "#";
+  const trimmed = url.trim();
+  if (!trimmed) return "#";
+  if (/^(https?:\/\/|tel:|mailto:)/i.test(trimmed)) return trimmed;
+  if (/^\+?\d{10,15}$/.test(trimmed.replace(/[\s-]/g, ""))) return `tel:${trimmed.replace(/[\s-]/g, "")}`;
+  return `https://${trimmed}`;
+}
+
 export function OrderDetailsModal({
   order,
   open,
@@ -161,7 +170,7 @@ export function OrderDetailsModal({
             )}
 
             {order.borzo?.trackingUrl && (
-              <a href={order.borzo.trackingUrl} target="_blank" rel="noopener noreferrer">
+              <a href={normalizeTrackingUrl(order.borzo.trackingUrl)} target="_blank" rel="noopener noreferrer">
                 <Button
                   variant="outline"
                   size="sm"
@@ -238,7 +247,7 @@ export function OrderDetailsModal({
                 <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Tracking:</span>
                   <a
-                    href={order.borzo.trackingUrl}
+                    href={normalizeTrackingUrl(order.borzo.trackingUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-emerald-400 hover:underline flex items-center gap-1 font-mono text-[11px]"
