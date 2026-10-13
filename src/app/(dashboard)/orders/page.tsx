@@ -66,6 +66,16 @@ export default function OrdersPage() {
   const [detailsModalOrder, setDetailsModalOrder] = useState<Order | null>(null);
   const [courierModalOrder, setCourierModalOrder] = useState<Order | null>(null);
 
+  // Track expanded items state per order for compact pill rendering
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+
+  const toggleOrderItems = (orderId: string) => {
+    setExpandedOrders((prev) => ({
+      ...prev,
+      [orderId]: !prev[orderId],
+    }));
+  };
+
   // Live order counts
   const [counts, setCounts] = useState({ placed: 0, preparing: 0, ready: 0 });
 
@@ -256,11 +266,11 @@ export default function OrdersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[120px]">Order #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items & Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Fulfillment</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[180px]">Customer</TableHead>
+                  <TableHead className="min-w-[200px] max-w-[280px]">Items & Total</TableHead>
+                  <TableHead className="w-[120px]">Status</TableHead>
+                  <TableHead className="w-[130px]">Fulfillment</TableHead>
+                  <TableHead className="text-right w-[160px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -316,21 +326,57 @@ export default function OrdersPage() {
                         </TableCell>
 
                         {/* Customer Info */}
-                        <TableCell>
-                          <div className="font-medium text-xs">{order.customer.name}</div>
-                          <div className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+                        <TableCell className="max-w-[180px]">
+                          <div className="font-medium text-xs truncate" title={order.customer.name}>
+                            {order.customer.name}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground truncate" title={order.customer.email || order.customer.phone}>
                             {order.customer.email || order.customer.phone}
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={order.deliveryAddress.borzoFormat.address}>
+                          <div className="text-[10px] text-muted-foreground truncate" title={order.deliveryAddress.borzoFormat.address}>
                             {isPickup ? "Kitchen pickup" : order.deliveryAddress.borzoFormat.address}
                           </div>
                         </TableCell>
 
                         {/* Items & Amount */}
-                        <TableCell>
-                          <div className="font-semibold text-xs">₹{order.totalAmount}</div>
-                          <div className="text-[11px] text-muted-foreground">
-                            {order.items.map((i) => `${i.quantity}x ${i.productName}`).join(", ")}
+                        <TableCell className="max-w-[280px]">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="font-bold text-xs text-foreground">₹{order.totalAmount}</span>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground">
+                              {order.items.reduce((sum, item) => sum + item.quantity, 0)} {order.items.reduce((sum, item) => sum + item.quantity, 0) === 1 ? "item" : "items"}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-1 max-w-[270px]">
+                            {(expandedOrders[order.id] ? order.items : order.items.slice(0, 3)).map((item, idx) => {
+                              const addonCount = item.addons?.reduce((sum, a) => sum + a.quantity, 0) || 0;
+                              return (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-muted/80 text-foreground border border-border/60 hover:bg-muted transition-colors leading-tight"
+                                  title={addonCount > 0 ? `${item.productName} (+${addonCount} add-on${addonCount > 1 ? "s" : ""})` : item.productName}
+                                >
+                                  <span className="font-bold text-primary mr-1">{item.quantity}x</span>
+                                  <span className="truncate max-w-[120px]">{item.productName}</span>
+                                  {addonCount > 0 && (
+                                    <span className="ml-1 text-[9px] text-muted-foreground font-mono">+{addonCount}</span>
+                                  )}
+                                </span>
+                              );
+                            })}
+                            {order.items.length > 3 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleOrderItems(order.id);
+                                }}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors cursor-pointer"
+                              >
+                                {expandedOrders[order.id]
+                                  ? "Less"
+                                  : `+${order.items.length - 3} more`}
+                              </button>
+                            )}
                           </div>
                         </TableCell>
 
