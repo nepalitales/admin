@@ -133,12 +133,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            html {
-              margin: 0;
-              padding: 0;
-              background: #ffffff;
-            }
-            body {
+            html, body {
               width: 100%;
               margin: 0;
               padding: 0;
@@ -150,10 +145,10 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
               text-rendering: geometricPrecision;
             }
             .receipt-container {
-              width: 70mm;
-              max-width: 70mm;
-              margin: 0 auto;
-              padding: 2mm 1mm;
+              width: 72mm;
+              max-width: 72mm;
+              margin: 0 !important;
+              padding: 2mm 2.5mm;
               background: #ffffff;
               color: #000000 !important;
               box-sizing: border-box;
@@ -161,7 +156,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
             @media print {
               @page {
                 size: 80mm auto;
-                margin: 0mm;
+                margin: 0mm !important;
               }
               html, body {
                 width: 100% !important;
@@ -171,10 +166,10 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                 color: #000000 !important;
               }
               .receipt-container {
-                width: 70mm !important;
-                max-width: 70mm !important;
-                margin: 0 auto !important;
-                padding: 1mm 1mm !important;
+                width: 72mm !important;
+                max-width: 72mm !important;
+                margin: 0 !important;
+                padding: 1.5mm 2.5mm !important;
                 background: #ffffff !important;
                 color: #000000 !important;
                 box-sizing: border-box !important;
@@ -345,9 +340,10 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
     printFrame.style.left = "-9999px";
     printFrame.style.top = "0";
     printFrame.style.width = "80mm";
-    printFrame.style.height = "100%";
+    printFrame.style.height = "1000px";
     printFrame.style.border = "none";
-    printFrame.style.visibility = "hidden";
+    printFrame.style.opacity = "0";
+    printFrame.style.pointerEvents = "none";
     document.body.appendChild(printFrame);
 
     const frameDoc = printFrame.contentWindow?.document;
@@ -365,7 +361,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
       printFrame.contentWindow?.print();
       setTimeout(() => {
         document.body.removeChild(printFrame);
-      }, 1000);
+      }, 1500);
     }, 250);
   };
 
