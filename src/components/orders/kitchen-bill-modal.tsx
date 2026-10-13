@@ -89,7 +89,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
           .map(
             (add) => `
             <tr>
-              <td colspan="4" style="padding-left: 10px; font-size: 10px; color: #333; line-height: 14px;">
+              <td colspan="4" style="padding-left: 8px; font-size: 10px; font-weight: 600; color: #000000; line-height: 13px;">
                 + ${add.name} (${add.quantity}x @ ${add.price} = ${add.total})
               </td>
             </tr>
@@ -99,16 +99,16 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
 
         return `
           <tr>
-            <td style="padding: 4px 0 2px 0; text-align: left; font-weight: bold; font-size: 11px; vertical-align: top;">
+            <td style="padding: 3px 0 2px 0; text-align: left; font-weight: 700; font-size: 11px; vertical-align: top; color: #000000;">
               ${item.name}
             </td>
-            <td style="padding: 4px 2px 2px 2px; text-align: right; font-size: 11px; vertical-align: top; white-space: nowrap;">
+            <td style="padding: 3px 2px 2px 2px; text-align: right; font-size: 11px; font-weight: 600; vertical-align: top; white-space: nowrap; color: #000000;">
               ${item.price}
             </td>
-            <td style="padding: 4px 2px 2px 2px; text-align: center; font-size: 11px; font-weight: bold; vertical-align: top;">
+            <td style="padding: 3px 2px 2px 2px; text-align: center; font-size: 11px; font-weight: 800; vertical-align: top; color: #000000;">
               ${item.quantity}
             </td>
-            <td style="padding: 4px 0 2px 2px; text-align: right; font-size: 11px; font-weight: bold; vertical-align: top; white-space: nowrap;">
+            <td style="padding: 3px 0 2px 2px; text-align: right; font-size: 11px; font-weight: 800; vertical-align: top; white-space: nowrap; color: #000000;">
               ${item.total}
             </td>
           </tr>
@@ -125,10 +125,15 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
           <title>Receipt_${invoiceNum}</title>
           <style>
             @page {
+              size: 80mm auto;
               margin: 0mm;
             }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
             html {
-              width: 100%;
               margin: 0;
               padding: 0;
               background: #ffffff;
@@ -138,84 +143,86 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
               margin: 0;
               padding: 0;
               background: #ffffff;
-              color: #000000;
-              font-family: 'Courier New', Courier, Monaco, monospace;
-              text-align: center;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+              color: #000000 !important;
+              font-family: Arial, 'Segoe UI', -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+              text-rendering: geometricPrecision;
             }
             .receipt-container {
-              display: inline-block;
-              width: 76mm;
-              max-width: 76mm;
+              width: 70mm;
+              max-width: 70mm;
               margin: 0 auto;
-              padding: 6mm 2mm;
+              padding: 2mm 1mm;
+              background: #ffffff;
+              color: #000000 !important;
               box-sizing: border-box;
-              text-align: left;
-              vertical-align: top;
             }
             @media print {
+              @page {
+                size: 80mm auto;
+                margin: 0mm;
+              }
               html, body {
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
                 color: #000000 !important;
-                text-align: center !important;
               }
               .receipt-container {
-                display: inline-block !important;
-                width: 76mm !important;
-                max-width: 76mm !important;
+                width: 70mm !important;
+                max-width: 70mm !important;
                 margin: 0 auto !important;
-                padding: 6mm 2mm !important;
+                padding: 1mm 1mm !important;
+                background: #ffffff !important;
+                color: #000000 !important;
                 box-sizing: border-box !important;
-                text-align: left !important;
-                vertical-align: top !important;
               }
             }
             table {
               width: 100%;
               border-collapse: collapse;
+              font-feature-settings: "tnum" 1;
             }
             .dashed-line {
-              border-top: 1px dashed #000000;
-              margin: 5px 0;
+              border-top: 1.5px dashed #000000;
+              margin: 4px 0;
             }
             .center { text-align: center; }
             .right { text-align: right; }
             .left { text-align: left; }
-            .bold { font-weight: bold; }
+            .bold { font-weight: 800; }
           </style>
         </head>
         <body>
           <div class="receipt-container">
             <!-- Brand Header -->
-            <div class="center" style="margin-bottom: 4px;">
-              <div style="font-size: 15px; font-weight: 800; letter-spacing: 1px;">
+            <div class="center" style="margin-bottom: 3px;">
+              <div style="font-size: 16px; font-weight: 900; letter-spacing: 0.5px; color: #000000;">
                 ${b.restaurant.name.toUpperCase()}
               </div>
-              <div style="font-size: 9.5px; margin-top: 2px; line-height: 12px;">
+              <div style="font-size: 10px; font-weight: 600; margin-top: 2px; line-height: 13px; color: #000000;">
                 ${b.restaurant.address}
               </div>
-              <div style="font-size: 10px; margin-top: 2px;">
+              <div style="font-size: 10.5px; font-weight: 700; margin-top: 2px; color: #000000;">
                 Ph: ${b.restaurant.phone}
               </div>
             </div>
 
             <div class="dashed-line"></div>
-            <div class="center bold" style="font-size: 11px; letter-spacing: 2px;">
+            <div class="center bold" style="font-size: 12.5px; letter-spacing: 2px; color: #000000; padding: 1px 0;">
               RECEIPT
             </div>
             <div class="dashed-line"></div>
 
             <!-- Customer & Order Meta Table -->
-            <table style="font-size: 11px;">
+            <table style="width: 100%; font-size: 11px; color: #000000; line-height: 1.35; font-weight: 600;">
               <tr>
-                <td style="text-align: left; font-weight: bold; vertical-align: top; width: 55%;">
+                <td style="text-align: left; font-weight: 800; vertical-align: top; width: 55%;">
                   Name: ${b.customer.name}
                 </td>
-                <td style="text-align: right; font-weight: bold; vertical-align: top; width: 45%;">
+                <td style="text-align: right; font-weight: 800; vertical-align: top; width: 45%;">
                   Inv #: ${invoiceNum}
                 </td>
               </tr>
@@ -228,7 +235,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                 </td>
               </tr>
               <tr>
-                <td style="text-align: left; font-weight: bold; vertical-align: top;">
+                <td style="text-align: left; font-weight: 800; vertical-align: top;">
                   MODE: ${fulfillmentType}
                 </td>
                 <td style="text-align: right; vertical-align: top;">
@@ -237,17 +244,17 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
               </tr>
               <tr>
                 <td colspan="2" style="text-align: left; padding-top: 2px;">
-                  Slot: <strong>${slotText}</strong>
+                  Slot: <strong style="font-weight: 800;">${slotText}</strong>
                 </td>
               </tr>
               <tr>
-                <td colspan="2" style="text-align: left; font-size: 10px; line-height: 13px; padding-top: 3px;">
+                <td colspan="2" style="text-align: left; font-size: 10px; line-height: 13px; padding-top: 2px; font-weight: 600;">
                   ${isPickup ? "Pickup: Metropolis Rivera, Shop 10" : `Address: ${b.customer.deliveryAddress}`}
                 </td>
               </tr>
               ${
                 b.customer.note
-                  ? `<tr><td colspan="2" style="text-align: left; font-size: 9.5px; font-style: italic; padding-top: 2px;">Note: ${b.customer.note}</td></tr>`
+                  ? `<tr><td colspan="2" style="text-align: left; font-size: 10px; padding-top: 2px; font-weight: 700; color: #000000;">Note: ${b.customer.note}</td></tr>`
                   : ""
               }
             </table>
@@ -255,13 +262,13 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
             <div class="dashed-line"></div>
 
             <!-- Items Table -->
-            <table style="font-size: 11px;">
+            <table style="width: 100%; font-size: 11px; color: #000000; line-height: 1.35;">
               <thead>
-                <tr style="border-bottom: 1px dashed #000000; font-weight: bold;">
-                  <th style="text-align: left; padding-bottom: 3px;">Item</th>
-                  <th style="text-align: right; padding-bottom: 3px; width: 38px;">Price</th>
-                  <th style="text-align: center; padding-bottom: 3px; width: 28px;">Qty</th>
-                  <th style="text-align: right; padding-bottom: 3px; width: 42px;">Total</th>
+                <tr style="border-bottom: 1.5px dashed #000000; font-weight: 800; font-size: 11.5px;">
+                  <th style="text-align: left; padding: 2px 0 3px 0;">Item</th>
+                  <th style="text-align: right; padding: 2px 2px 3px 2px; width: 38px;">Price</th>
+                  <th style="text-align: center; padding: 2px 2px 3px 2px; width: 28px;">Qty</th>
+                  <th style="text-align: right; padding: 2px 0 3px 2px; width: 44px;">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,16 +279,16 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
             <div class="dashed-line"></div>
 
             <!-- Totals Table -->
-            <table style="font-size: 11px;">
+            <table style="width: 100%; font-size: 11px; color: #000000; line-height: 1.35; font-weight: 600;">
               <tr>
-                <td style="text-align: left; padding: 1px 0;">Sub-Total:</td>
-                <td style="text-align: right; padding: 1px 0;">INR ${b.totals.subtotal}</td>
+                <td style="text-align: left; padding: 2px 0;">Sub-Total:</td>
+                <td style="text-align: right; padding: 2px 0; font-weight: 800;">INR ${b.totals.subtotal}</td>
               </tr>
               <tr>
-                <td style="text-align: left; padding: 1px 0;">
+                <td style="text-align: left; padding: 2px 0;">
                   ${isPickup ? "Fulfillment:" : "Delivery Fee:"}
                 </td>
-                <td style="text-align: right; padding: 1px 0;">
+                <td style="text-align: right; padding: 2px 0; font-weight: 700;">
                   ${isPickup ? "FREE (Pickup)" : b.totals.deliveryFee > 0 ? `INR ${b.totals.deliveryFee}` : "As per Borzo/Porter service"}
                 </td>
               </tr>
@@ -289,17 +296,17 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                 b.totals.discount > 0
                   ? `
               <tr>
-                <td style="text-align: left; padding: 1px 0;">Discount:</td>
-                <td style="text-align: right; padding: 1px 0;">-INR ${b.totals.discount}</td>
+                <td style="text-align: left; padding: 2px 0;">Discount:</td>
+                <td style="text-align: right; padding: 2px 0; font-weight: 800;">-INR ${b.totals.discount}</td>
               </tr>
               `
                   : ""
               }
-              <tr style="border-top: 1px dashed #000000; font-weight: bold; font-size: 12px;">
-                <td style="text-align: left; padding-top: 4px;">
+              <tr style="border-top: 1.5px dashed #000000; font-weight: 900; font-size: 13px;">
+                <td style="text-align: left; padding-top: 5px; padding-bottom: 2px;">
                   Mode: ${b.payment.mode === "RAZORPAY" ? "Online" : b.payment.mode}
                 </td>
-                <td style="text-align: right; padding-top: 4px;">
+                <td style="text-align: right; padding-top: 5px; padding-bottom: 2px;">
                   TOTAL: INR ${b.totals.grandTotal}
                 </td>
               </tr>
@@ -308,15 +315,15 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
             <div class="dashed-line"></div>
 
             <!-- Footer -->
-            <div class="center" style="font-size: 9.5px; margin-top: 6px; line-height: 13px;">
-              <div style="font-weight: bold; letter-spacing: 1px;">
+            <div class="center" style="font-size: 10px; margin-top: 6px; line-height: 14px; color: #000000; text-align: center;">
+              <div style="font-weight: 800; letter-spacing: 0.5px;">
                 ** SAVE PAPER SAVE NATURE **
               </div>
-              <div>Authentic Nepali Delicacies</div>
-              ${!isPickup ? `<div style="margin-top: 3px; font-weight: bold;">* Delivery as per Borzo/Porter service</div>` : ""}
-              <div style="margin-top: 2px;">Thank you for your order!</div>
+              <div style="font-weight: 600;">Authentic Nepali Delicacies</div>
+              ${!isPickup ? `<div style="margin-top: 2px; font-weight: 700;">* Delivery as per Borzo/Porter service</div>` : ""}
+              <div style="margin-top: 2px; font-weight: 700;">Thank you for your order!</div>
             </div>
-            <div class="dashed-line" style="margin-top: 6px;"></div>
+            <div class="dashed-line" style="margin-top: 5px;"></div>
           </div>
         </body>
       </html>
@@ -325,7 +332,8 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
 
   /**
    * Optimized 80mm Thermal Receipt Printing.
-   * Compatible with Helett BillQuick Lite USB Direct POS Autocut Thermal Printer.
+   * Compatible with POS80 / Helett BillQuick Lite USB Direct POS Thermal Printers.
+   * Centered on 80mm rolls with anti-bleed typography and 0 margin clipping.
    */
   const handlePrint = () => {
     if (!bill) return;
@@ -334,11 +342,12 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
 
     const printFrame = document.createElement("iframe");
     printFrame.style.position = "fixed";
-    printFrame.style.right = "0";
-    printFrame.style.bottom = "0";
-    printFrame.style.width = "0";
-    printFrame.style.height = "0";
+    printFrame.style.left = "-9999px";
+    printFrame.style.top = "0";
+    printFrame.style.width = "80mm";
+    printFrame.style.height = "100%";
     printFrame.style.border = "none";
+    printFrame.style.visibility = "hidden";
     document.body.appendChild(printFrame);
 
     const frameDoc = printFrame.contentWindow?.document;
@@ -398,13 +407,13 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto overflow-x-hidden font-mono text-xs">
+      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto overflow-x-hidden font-sans text-xs">
         <DialogHeader className="font-sans">
           <DialogTitle className="flex items-center justify-between text-base">
             <span>Kitchen Receipt / Bill</span>
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Optimized for Helett BillQuick Lite POS 80mm Thermal Printer &amp; Centered Print Preview
+            Optimized for POS80 &amp; Helett BillQuick Lite 80mm Thermal Printers (Anti-bleed font, Centered)
           </DialogDescription>
         </DialogHeader>
 
@@ -419,12 +428,12 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
           <div
             ref={printAreaRef}
             id="kitchen-print-receipt"
-            className="rounded-lg border border-neutral-300 bg-white p-4 text-black shadow-inner space-y-2 font-mono text-[11px]"
+            className="rounded-lg border border-neutral-300 bg-white p-4 text-black shadow-inner space-y-2 font-sans text-[11px]"
             style={{ width: "100%", maxWidth: "340px", margin: "0 auto" }}
           >
             {/* Header: Restaurant Name & Address */}
             <div className="text-center pb-1">
-              <h3 className="font-bold text-sm tracking-wide uppercase font-mono">
+              <h3 className="font-bold text-sm tracking-wide uppercase font-sans">
                 {bill.restaurant.name}
               </h3>
               <p className="text-[10px] leading-tight mt-1 text-neutral-800">
