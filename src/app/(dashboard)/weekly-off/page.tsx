@@ -82,12 +82,12 @@ export default function WeeklyOffPage() {
       </div>
 
       {/* ── Operational Architecture Info Card ── */}
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs space-y-2.5 text-amber-900 dark:text-amber-200">
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs space-y-2.5 text-foreground">
         <div className="font-semibold text-sm flex items-center gap-2">
-          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <Info className="h-4 w-4 text-amber-500 shrink-0" />
           <span>How Kitchen Weekly Off Works</span>
         </div>
-        <ul className="space-y-1.5 list-disc list-inside text-muted-foreground dark:text-neutral-300">
+        <ul className="space-y-1.5 list-disc list-inside text-muted-foreground">
           <li>
             <strong className="text-foreground">Kitchen Cooking &amp; Dispatch Paused:</strong> On selected weekly off days (e.g. Monday), the kitchen is closed—no food is cooked, packed, or delivered.
           </li>
@@ -134,7 +134,7 @@ export default function WeeklyOffPage() {
           <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/40 border border-border/50 space-y-1">
             <div className="font-medium text-foreground">Current Operating Schedule:</div>
             {selectedDays.length === 0 ? (
-              <p className="text-emerald-600 dark:text-emerald-400 font-medium">
+              <p className="text-emerald-500 font-medium">
                 ✓ No weekly off configured — kitchen cooks and delivers all 7 days.
               </p>
             ) : (
