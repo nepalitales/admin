@@ -293,17 +293,18 @@ export default function OrdersPage() {
     enableToasts: isToday,
   });
 
-  // Background interval polling for Today's view to keep orders live in real time
+  // Initial and date-switch fetch; refreshes when admin returns to tab
   useEffect(() => {
     fetchOrders();
 
-    if (!isToday) return;
+    function handleVisibility() {
+      if (!document.hidden && isToday) {
+        fetchOrders(true);
+      }
+    }
 
-    const interval = setInterval(() => {
-      fetchOrders(true);
-    }, 15000);
-
-    return () => clearInterval(interval);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchOrders, isToday]);
 
   const handleShiftDay = (delta: number) => {
