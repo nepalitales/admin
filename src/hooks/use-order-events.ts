@@ -26,7 +26,7 @@ interface UseOrderEventsOptions {
   enableToasts?: boolean;
 }
 
-const POLL_INTERVAL_MS = 15_000; // Poll every 15s
+const POLL_INTERVAL_MS = 30_000; // Poll every 30s (visibilitychange handles instant sync on tab switch)
 
 export function useOrderEvents(options: UseOrderEventsOptions = {}) {
   const { onOrderChange, enableToasts = true } = options;
