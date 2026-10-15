@@ -52,12 +52,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import type { Order as OrderType_API } from "@/lib/api";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusTab, setStatusTab] = useState<string>("all");
+  const [windowFilter, setWindowFilter] = useState<"today" | "all">("today");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // Modals state
@@ -79,13 +81,60 @@ export default function OrdersPage() {
   // Live order counts
   const [counts, setCounts] = useState({ placed: 0, preparing: 0, ready: 0 });
 
+  // Today's date string in IST ("YYYY-MM-DD")
+  const todayISTDateStr = useMemo(() => {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  }, []);
+
+  const todayISTDisplay = useMemo(() => {
+    return new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date());
+  }, []);
+
+  // Filter orders received in today's ordering window
+  const isOrderFromTodayWindow = useCallback((orderCreatedAt: string) => {
+    try {
+      const orderDateStr = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(orderCreatedAt));
+      return orderDateStr === todayISTDateStr;
+    } catch {
+      return false;
+    }
+  }, [todayISTDateStr]);
+
+  const todayOrders = useMemo(() => {
+    return orders.filter((o) => isOrderFromTodayWindow(o.createdAt));
+  }, [orders, isOrderFromTodayWindow]);
+
+  const displayedOrders = useMemo(() => {
+    if (windowFilter === "today") {
+      return todayOrders;
+    }
+    return orders;
+  }, [orders, todayOrders, windowFilter]);
+
   const fetchOrders = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
+      // Fetch up to 100 orders so all today's window orders (max 70 capacity) are loaded
       const res = await getOrders({
         status: statusTab === "all" ? undefined : statusTab,
         search: search.trim() || undefined,
-        limit: 50,
+        limit: 100,
       });
       setOrders(res.orders);
       if (res.counts) {
@@ -141,6 +190,281 @@ export default function OrdersPage() {
     }
   };
 
+  /**
+   * Print Orders Summary Sheet — A4-optimised summary.
+   * Prints all orders received in today's ordering window with order ID,
+   * customer info, all items, pricing, status, and delivery type.
+   */
+  const handlePrintAllOrders = () => {
+    const targetOrders = windowFilter === "today" ? todayOrders : (displayedOrders.length > 0 ? displayedOrders : orders);
+
+    if (targetOrders.length === 0) {
+      toast.info(windowFilter === "today" ? "No orders received in today's window yet." : "No orders to print.");
+      return;
+    }
+
+    const todayIST = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date());
+
+    const formatTime = (iso: string) =>
+      new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }).format(new Date(iso));
+
+    const statusLabel = (s: string) => {
+      const map: Record<string, string> = {
+        pending_payment: "Pending Payment",
+        placed: "Placed",
+        preparing: "Preparing",
+        ready: "Ready",
+        out_for_delivery: "Out for Delivery",
+        porter_booked: "Porter Booked",
+        delivered: "Delivered",
+        cancelled_by_customer: "Cancelled (Customer)",
+        cancelled_by_admin: "Cancelled (Admin)",
+      };
+      return map[s] || s;
+    };
+
+    const totalRevenue = targetOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const totalItems = targetOrders.reduce(
+      (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0),
+      0,
+    );
+
+    const orderRows = targetOrders
+      .map((o) => {
+        const isPickup = (o.orderType || "delivery") === "pickup";
+        const formattedAddress = isPickup
+          ? "Self Pickup (Kitchen Counter)"
+          : o.deliveryAddress?.borzoFormat?.address ||
+            [
+              o.deliveryAddress?.apartment ? `Apt ${o.deliveryAddress.apartment}` : "",
+              o.deliveryAddress?.building,
+              o.deliveryAddress?.street,
+              o.deliveryAddress?.landmark ? `Near ${o.deliveryAddress.landmark}` : "",
+              o.deliveryAddress?.city,
+              o.deliveryAddress?.pincode,
+            ]
+              .filter(Boolean)
+              .join(", ") || "—";
+
+        const itemsList = o.items
+          .map((item) => {
+            const addonText =
+              item.addons && item.addons.length > 0
+                ? ` <span style="color:#6b7280;font-size:9px;">(+${item.addons.map((a) => `${a.quantity}x ${a.name}`).join(", ")})</span>`
+                : "";
+            return `
+              <div style="margin-bottom:3px;font-size:11px;line-height:1.3;">
+                <strong>${item.quantity}x</strong> ${item.productName}${addonText}
+                <span style="color:#6b7280;font-size:10px;">· ₹${item.price} each</span>
+              </div>
+            `;
+          })
+          .join("");
+
+        const notesHtml = o.notes
+          ? `<div style="margin-top:4px;padding:3px 6px;background:#fef3c7;border-left:3px solid #f59e0b;font-size:9px;color:#92400e;border-radius:2px;">
+              <strong>Note:</strong> ${o.notes}
+            </div>`
+          : "";
+
+        return `
+          <tr style="page-break-inside:avoid;">
+            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;white-space:nowrap;">
+              <div style="font-weight:700;font-size:13px;font-family:monospace;">${o.orderNumber}</div>
+              <div style="font-size:10px;color:#6b7280;margin-top:2px;">${formatTime(o.createdAt)}</div>
+              <div style="font-size:9px;color:#9ca3af;font-family:monospace;margin-top:2px;">${o.id.slice(-8)}</div>
+            </td>
+            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;max-width:200px;">
+              <div style="font-weight:700;font-size:12px;">${o.customer.name}</div>
+              <div style="font-size:10px;color:#4b5563;margin-top:1px;">📞 ${o.customer.phone}</div>
+              ${o.customer.email ? `<div style="font-size:10px;color:#6b7280;">✉️ ${o.customer.email}</div>` : ""}
+              <div style="font-size:10px;color:#4b5563;margin-top:3px;line-height:1.2;">
+                📍 <strong>${isPickup ? "Pickup:" : "Delivery:"}</strong> ${formattedAddress}
+              </div>
+              ${notesHtml}
+            </td>
+            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;max-width:240px;">
+              ${itemsList}
+            </td>
+            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:right;white-space:nowrap;">
+              <div style="font-weight:800;font-size:13px;">₹${o.totalAmount}</div>
+              <div style="font-size:9px;color:#6b7280;margin-top:2px;">Items: ₹${o.itemTotal}</div>
+              ${o.deliveryFee > 0 ? `<div style="font-size:9px;color:#6b7280;">Delivery: ₹${o.deliveryFee}</div>` : ""}
+              ${o.discount > 0 ? `<div style="font-size:9px;color:#059669;">Discount: -₹${o.discount}</div>` : ""}
+              <div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:2px;">Paid (Razorpay)</div>
+            </td>
+            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:center;white-space:nowrap;">
+              <span style="display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${
+                o.status === "delivered"
+                  ? "#d1fae5"
+                  : o.status === "preparing"
+                  ? "#fef3c7"
+                  : o.status === "ready"
+                  ? "#dbeafe"
+                  : o.status === "placed"
+                  ? "#e0e7ff"
+                  : o.status.startsWith("cancelled")
+                  ? "#fee2e2"
+                  : "#f3f4f6"
+              };color:${
+                o.status === "delivered"
+                  ? "#065f46"
+                  : o.status === "preparing"
+                  ? "#92400e"
+                  : o.status === "ready"
+                  ? "#1e40af"
+                  : o.status === "placed"
+                  ? "#3730a3"
+                  : o.status.startsWith("cancelled")
+                  ? "#991b1b"
+                  : "#374151"
+              };">${statusLabel(o.status)}</span>
+            </td>
+            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:center;white-space:nowrap;">
+              <span style="display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${
+                isPickup ? "#f3e8ff" : "#e0f2fe"
+              };color:${isPickup ? "#6b21a8" : "#0369a1"};">${isPickup ? "Self Pickup" : "Delivery"}</span>
+              ${
+                o.dispatchSlot?.label
+                  ? `<div style="font-size:9px;color:#4b5563;font-weight:600;margin-top:3px;">🕒 ${o.dispatchSlot.label}</div>`
+                  : ""
+              }
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const printTitle =
+      windowFilter === "today"
+        ? `Nepali Tales — Today's Ordering Window (${todayIST})`
+        : `Nepali Tales — Orders Summary (${todayIST})`;
+
+    const printHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${printTitle}</title>
+          <style>
+            @page { size: A4 landscape; margin: 8mm 6mm; }
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #111827; background: #fff; }
+            table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+            th { text-align: left; padding: 8px 6px; border-bottom: 2px solid #111827; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; background: #f9fafb; }
+            .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #111827; }
+            .header h1 { margin: 0; font-size: 18px; font-weight: 800; color: #111827; }
+            .header .meta { text-align: right; font-size: 11px; color: #6b7280; }
+            .summary-bar { display: flex; gap: 16px; margin-bottom: 8px; }
+            .summary-item { padding: 6px 14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; }
+            .summary-item .label { font-size: 9px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.5px; font-weight: 600; }
+            .summary-item .value { font-size: 15px; font-weight: 800; margin-top: 1px; color: #111827; }
+            tr { page-break-inside: avoid; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1>${printTitle}</h1>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">
+                ${windowFilter === "today" ? "Orders received in today's ordering window" : "Admin orders summary"} · Printed on ${todayIST} at ${formatTime(new Date().toISOString())}
+              </div>
+            </div>
+            <div class="meta">
+              <div style="font-weight:800;font-size:13px;color:#111827;">Nepali Tales</div>
+              <div>admin.nepalitales.com</div>
+            </div>
+          </div>
+
+          <div class="summary-bar">
+            <div class="summary-item">
+              <div class="label">Total Orders</div>
+              <div class="value">${targetOrders.length}</div>
+            </div>
+            <div class="summary-item">
+              <div class="label">Total Revenue</div>
+              <div class="value">₹${totalRevenue.toLocaleString("en-IN")}</div>
+            </div>
+            <div class="summary-item">
+              <div class="label">Total Food Items</div>
+              <div class="value">${totalItems}</div>
+            </div>
+            <div class="summary-item">
+              <div class="label">Doorstep Delivery</div>
+              <div class="value">${targetOrders.filter((o) => (o.orderType || "delivery") === "delivery").length}</div>
+            </div>
+            <div class="summary-item">
+              <div class="label">Self Pickup</div>
+              <div class="value">${targetOrders.filter((o) => o.orderType === "pickup").length}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width:90px;">Order #</th>
+                <th style="width:200px;">Customer & Address</th>
+                <th>Items Ordered</th>
+                <th style="width:100px;text-align:right;">Pricing</th>
+                <th style="width:90px;text-align:center;">Status</th>
+                <th style="width:110px;text-align:center;">Delivery Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orderRows}
+            </tbody>
+          </table>
+
+          <div style="margin-top:14px;padding-top:8px;border-top:1px solid #d1d5db;display:flex;justify-content:space-between;font-size:10px;color:#6b7280;page-break-inside:avoid;">
+            <span>Nepali Tales Kitchen · Metropolis Riveria, Kasarvadavali, Ghodbunder Road, Thane 400615</span>
+            <span>Helpline: +91 76780 97659</span>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printFrame = document.createElement("iframe");
+    printFrame.style.position = "fixed";
+    printFrame.style.left = "-9999px";
+    printFrame.style.top = "0";
+    printFrame.style.width = "1200px";
+    printFrame.style.height = "1000px";
+    printFrame.style.border = "none";
+    printFrame.style.opacity = "0";
+    printFrame.style.pointerEvents = "none";
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document;
+    if (!frameDoc) {
+      const blob = new Blob([printHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      return;
+    }
+
+    frameDoc.open();
+    frameDoc.write(printHtml);
+    frameDoc.close();
+
+    printFrame.contentWindow?.focus();
+    setTimeout(() => {
+      printFrame.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(printFrame);
+      }, 2000);
+    }, 300);
+  };
+
   // Summary card items
   const summaryCards = [
     {
@@ -194,6 +518,18 @@ export default function OrdersPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={handlePrintAllOrders}
+            className="text-xs gap-1.5 border-emerald-500/40 text-emerald-400 hover:text-emerald-300"
+            disabled={(windowFilter === "today" ? todayOrders.length : displayedOrders.length) === 0}
+          >
+            <Printer className="h-3.5 w-3.5" />
+            {windowFilter === "today"
+              ? `Print Today's Orders (${todayOrders.length})`
+              : `Print All Orders (${displayedOrders.length})`}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleAutoPrepare}
             className="text-xs gap-1.5 border-amber-500/40 text-amber-400 hover:text-amber-300"
           >
@@ -228,6 +564,57 @@ export default function OrdersPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Scope Selector: Today's Window Orders vs All Loaded Orders */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/60 p-2.5 rounded-lg border">
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            variant={windowFilter === "today" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setWindowFilter("today")}
+            className="text-xs h-8 gap-1.5"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            Today&apos;s Window Orders
+            <Badge
+              variant="secondary"
+              className={`ml-1 px-1.5 py-0 text-[10px] font-bold ${
+                windowFilter === "today" ? "bg-primary-foreground/20 text-primary-foreground" : ""
+              }`}
+            >
+              {todayOrders.length}
+            </Badge>
+          </Button>
+          <Button
+            type="button"
+            variant={windowFilter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setWindowFilter("all")}
+            className="text-xs h-8 gap-1.5"
+          >
+            All Loaded Orders
+            <Badge
+              variant="secondary"
+              className={`ml-1 px-1.5 py-0 text-[10px] font-bold ${
+                windowFilter === "all" ? "bg-primary-foreground/20 text-primary-foreground" : ""
+              }`}
+            >
+              {orders.length}
+            </Badge>
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+          {windowFilter === "today" ? (
+            <span>
+              Showing orders received in today&apos;s ordering window ({todayISTDisplay})
+            </span>
+          ) : (
+            <span>Showing all recent orders ({orders.length} total)</span>
+          )}
+        </div>
       </div>
 
       {/* Filters and Search Bar */}
@@ -285,18 +672,36 @@ export default function OrdersPage() {
                       <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))
-                ) : orders.length === 0 ? (
+                ) : displayedOrders.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-40 text-center">
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <UtensilsCrossed className="h-8 w-8 mb-2 opacity-40" />
-                        <p className="font-medium text-sm">No orders found</p>
-                        <p className="text-xs">Incoming orders will appear here automatically in real time.</p>
+                        <p className="font-medium text-sm">
+                          {windowFilter === "today"
+                            ? "No orders received in today's window yet"
+                            : "No orders found"}
+                        </p>
+                        <p className="text-xs">
+                          {windowFilter === "today"
+                            ? "Incoming orders from today's window will appear here automatically."
+                            : "Incoming orders will appear here automatically in real time."}
+                        </p>
+                        {windowFilter === "today" && orders.length > 0 && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => setWindowFilter("all")}
+                            className="mt-2 text-xs text-primary"
+                          >
+                            View all {orders.length} historical orders
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  orders.map((order) => {
+                  displayedOrders.map((order) => {
                     const isRowBusy = actionLoadingId === order.id;
                     const isPickup = (order.orderType || "delivery") === "pickup";
 
