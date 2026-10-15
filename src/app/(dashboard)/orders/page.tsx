@@ -279,32 +279,32 @@ export default function OrdersPage() {
 
         return `
           <tr style="page-break-inside:avoid;">
-            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;white-space:nowrap;">
-              <div style="font-weight:700;font-size:13px;font-family:monospace;">${o.orderNumber}</div>
+            <td style="padding:7px 5px;border-bottom:1px solid #e5e7eb;vertical-align:top;white-space:nowrap;">
+              <div style="font-weight:700;font-size:12px;font-family:monospace;">${o.orderNumber}</div>
               <div style="font-size:10px;color:#6b7280;margin-top:2px;">${formatTime(o.createdAt)}</div>
               <div style="font-size:9px;color:#9ca3af;font-family:monospace;margin-top:2px;">${o.id.slice(-8)}</div>
             </td>
-            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;max-width:200px;">
-              <div style="font-weight:700;font-size:12px;">${o.customer.name}</div>
-              <div style="font-size:10px;color:#4b5563;margin-top:1px;">📞 ${o.customer.phone}</div>
-              ${o.customer.email ? `<div style="font-size:10px;color:#6b7280;">✉️ ${o.customer.email}</div>` : ""}
-              <div style="font-size:10px;color:#4b5563;margin-top:3px;line-height:1.2;">
-                📍 <strong>${isPickup ? "Pickup:" : "Delivery:"}</strong> ${formattedAddress}
+            <td style="padding:7px 5px;border-bottom:1px solid #e5e7eb;vertical-align:top;max-width:180px;">
+              <div style="font-weight:700;font-size:11px;">${o.customer.name}</div>
+              <div style="font-size:10px;color:#4b5563;margin-top:1px;">Phone: ${o.customer.phone}</div>
+              ${o.customer.email ? `<div style="font-size:9px;color:#6b7280;">Email: ${o.customer.email}</div>` : ""}
+              <div style="font-size:10px;color:#4b5563;margin-top:2px;line-height:1.2;">
+                <strong>${isPickup ? "Pickup:" : "Delivery:"}</strong> ${formattedAddress}
               </div>
               ${notesHtml}
             </td>
-            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;max-width:240px;">
+            <td style="padding:7px 5px;border-bottom:1px solid #e5e7eb;vertical-align:top;">
               ${itemsList}
             </td>
-            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:right;white-space:nowrap;">
-              <div style="font-weight:800;font-size:13px;">₹${o.totalAmount}</div>
-              <div style="font-size:9px;color:#6b7280;margin-top:2px;">Items: ₹${o.itemTotal}</div>
-              ${o.deliveryFee > 0 ? `<div style="font-size:9px;color:#6b7280;">Delivery: ₹${o.deliveryFee}</div>` : ""}
-              ${o.discount > 0 ? `<div style="font-size:9px;color:#059669;">Discount: -₹${o.discount}</div>` : ""}
+            <td style="padding:7px 5px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:right;white-space:nowrap;">
+              <div style="font-weight:800;font-size:12px;">₹${o.totalAmount}</div>
+              <div style="font-size:9px;color:#6b7280;margin-top:1px;">Items: ₹${o.itemTotal}</div>
+              ${o.deliveryFee > 0 ? `<div style="font-size:9px;color:#6b7280;">Del: ₹${o.deliveryFee}</div>` : ""}
+              ${o.discount > 0 ? `<div style="font-size:9px;color:#059669;">Disc: -₹${o.discount}</div>` : ""}
               <div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:2px;">Paid (Razorpay)</div>
             </td>
-            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:center;white-space:nowrap;">
-              <span style="display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${
+            <td style="padding:7px 5px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:center;white-space:nowrap;">
+              <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:${
                 o.status === "delivered"
                   ? "#d1fae5"
                   : o.status === "preparing"
@@ -330,13 +330,13 @@ export default function OrdersPage() {
                   : "#374151"
               };">${statusLabel(o.status)}</span>
             </td>
-            <td style="padding:8px 6px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:center;white-space:nowrap;">
-              <span style="display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${
+            <td style="padding:7px 5px;border-bottom:1px solid #e5e7eb;vertical-align:top;text-align:center;white-space:nowrap;">
+              <span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:${
                 isPickup ? "#f3e8ff" : "#e0f2fe"
               };color:${isPickup ? "#6b21a8" : "#0369a1"};">${isPickup ? "Self Pickup" : "Delivery"}</span>
               ${
                 o.dispatchSlot?.label
-                  ? `<div style="font-size:9px;color:#4b5563;font-weight:600;margin-top:3px;">🕒 ${o.dispatchSlot.label}</div>`
+                  ? `<div style="font-size:9px;color:#4b5563;font-weight:600;margin-top:2px;">${o.dispatchSlot.label}</div>`
                   : ""
               }
             </td>
@@ -357,18 +357,18 @@ export default function OrdersPage() {
           <meta charset="utf-8" />
           <title>${printTitle}</title>
           <style>
-            @page { size: A4 landscape; margin: 8mm 6mm; }
+            @page { size: A4 portrait; margin: 8mm 6mm; }
             * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #111827; background: #fff; }
             table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-            th { text-align: left; padding: 8px 6px; border-bottom: 2px solid #111827; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; background: #f9fafb; }
-            .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #111827; }
-            .header h1 { margin: 0; font-size: 18px; font-weight: 800; color: #111827; }
-            .header .meta { text-align: right; font-size: 11px; color: #6b7280; }
-            .summary-bar { display: flex; gap: 16px; margin-bottom: 8px; }
-            .summary-item { padding: 6px 14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; }
-            .summary-item .label { font-size: 9px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.5px; font-weight: 600; }
-            .summary-item .value { font-size: 15px; font-weight: 800; margin-top: 1px; color: #111827; }
+            th { text-align: left; padding: 6px 5px; border-bottom: 2px solid #111827; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; background: #f9fafb; }
+            .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #111827; }
+            .header h1 { margin: 0; font-size: 16px; font-weight: 800; color: #111827; }
+            .header .meta { text-align: right; font-size: 10px; color: #6b7280; }
+            .summary-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+            .summary-item { padding: 6px 4px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; text-align: center; }
+            .summary-item .label { font-size: 8px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.5px; font-weight: 600; }
+            .summary-item .value { font-size: 14px; font-weight: 800; margin-top: 1px; color: #111827; }
             tr { page-break-inside: avoid; }
           </style>
         </head>
@@ -376,12 +376,12 @@ export default function OrdersPage() {
           <div class="header">
             <div>
               <h1>${printTitle}</h1>
-              <div style="font-size:11px;color:#6b7280;margin-top:2px;">
+              <div style="font-size:10px;color:#6b7280;margin-top:2px;">
                 ${windowFilter === "today" ? "Orders received in today's ordering window" : "Admin orders summary"} · Printed on ${todayIST} at ${formatTime(new Date().toISOString())}
               </div>
             </div>
             <div class="meta">
-              <div style="font-weight:800;font-size:13px;color:#111827;">Nepali Tales</div>
+              <div style="font-weight:800;font-size:12px;color:#111827;">Nepali Tales</div>
               <div>admin.nepalitales.com</div>
             </div>
           </div>
@@ -396,15 +396,15 @@ export default function OrdersPage() {
               <div class="value">₹${totalRevenue.toLocaleString("en-IN")}</div>
             </div>
             <div class="summary-item">
-              <div class="label">Total Food Items</div>
+              <div class="label">Total Items</div>
               <div class="value">${totalItems}</div>
             </div>
             <div class="summary-item">
-              <div class="label">Doorstep Delivery</div>
+              <div class="label">Delivery</div>
               <div class="value">${targetOrders.filter((o) => (o.orderType || "delivery") === "delivery").length}</div>
             </div>
             <div class="summary-item">
-              <div class="label">Self Pickup</div>
+              <div class="label">Pickup</div>
               <div class="value">${targetOrders.filter((o) => o.orderType === "pickup").length}</div>
             </div>
           </div>
@@ -412,12 +412,12 @@ export default function OrdersPage() {
           <table>
             <thead>
               <tr>
-                <th style="width:90px;">Order #</th>
-                <th style="width:200px;">Customer & Address</th>
+                <th style="width:75px;">Order #</th>
+                <th style="width:175px;">Customer & Address</th>
                 <th>Items Ordered</th>
-                <th style="width:100px;text-align:right;">Pricing</th>
-                <th style="width:90px;text-align:center;">Status</th>
-                <th style="width:110px;text-align:center;">Delivery Type</th>
+                <th style="width:75px;text-align:right;">Pricing</th>
+                <th style="width:75px;text-align:center;">Status</th>
+                <th style="width:85px;text-align:center;">Type</th>
               </tr>
             </thead>
             <tbody>
@@ -425,7 +425,7 @@ export default function OrdersPage() {
             </tbody>
           </table>
 
-          <div style="margin-top:14px;padding-top:8px;border-top:1px solid #d1d5db;display:flex;justify-content:space-between;font-size:10px;color:#6b7280;page-break-inside:avoid;">
+          <div style="margin-top:12px;padding-top:6px;border-top:1px solid #d1d5db;display:flex;justify-content:space-between;font-size:9px;color:#6b7280;page-break-inside:avoid;">
             <span>Nepali Tales Kitchen · Metropolis Riveria, Kasarvadavali, Ghodbunder Road, Thane 400615</span>
             <span>Helpline: +91 76780 97659</span>
           </div>
@@ -437,8 +437,8 @@ export default function OrdersPage() {
     printFrame.style.position = "fixed";
     printFrame.style.left = "-9999px";
     printFrame.style.top = "0";
-    printFrame.style.width = "1200px";
-    printFrame.style.height = "1000px";
+    printFrame.style.width = "900px";
+    printFrame.style.height = "1200px";
     printFrame.style.border = "none";
     printFrame.style.opacity = "0";
     printFrame.style.pointerEvents = "none";
