@@ -56,6 +56,8 @@ import {
   CalendarCheck,
   FileSpreadsheet,
   Radio,
+  Loader2,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -874,7 +876,7 @@ export default function OrdersPage() {
                   <TableHead className="min-w-64 text-xs">Items &amp; Total</TableHead>
                   <TableHead className="w-28 text-center text-xs">Status</TableHead>
                   <TableHead className="w-24 text-center text-xs">Fulfillment</TableHead>
-                  <TableHead className="w-28 text-right text-xs">Actions</TableHead>
+                  <TableHead className="min-w-44 text-right text-xs">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1019,17 +1021,96 @@ export default function OrdersPage() {
                           )}
                         </TableCell>
 
-                        {/* Actions Dropdown & Print Bill */}
+                        {/* Actions: 1-Click Status Buttons + Print Bill + More */}
                         <TableCell className="text-right align-top pt-2.5">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-1.5 flex-nowrap">
+                            {/* 1-Click Status Transitions */}
+                            {order.status === "placed" && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2.5 text-xs font-bold gap-1 text-amber-500 border-amber-500/40 hover:bg-amber-500/10 cursor-pointer shadow-2xs"
+                                onClick={() => handleStatusChange(order.id, "preparing")}
+                                disabled={actionLoadingId === order.id}
+                                title="Mark Cooking / Preparing (1-click)"
+                              >
+                                {actionLoadingId === order.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Clock className="h-3 w-3" />
+                                )}
+                                Preparing
+                              </Button>
+                            )}
+
+                            {order.status === "preparing" && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2.5 text-xs font-bold gap-1 text-blue-400 border-blue-500/40 hover:bg-blue-500/10 cursor-pointer shadow-2xs"
+                                onClick={() => handleStatusChange(order.id, "ready")}
+                                disabled={actionLoadingId === order.id}
+                                title={isPickup ? "Mark Ready for Pickup (1-click)" : "Mark Ready (1-click)"}
+                              >
+                                {actionLoadingId === order.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="h-3 w-3" />
+                                )}
+                                {isPickup ? "Ready for Pickup" : "Mark Ready"}
+                              </Button>
+                            )}
+
+                            {order.status === "ready" && !isPickup && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2.5 text-xs font-bold gap-1 text-indigo-400 border-indigo-500/40 hover:bg-indigo-500/10 cursor-pointer shadow-2xs"
+                                onClick={() => handleStatusChange(order.id, "out_for_delivery")}
+                                disabled={actionLoadingId === order.id}
+                                title="Mark Out for Delivery (1-click)"
+                              >
+                                {actionLoadingId === order.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Truck className="h-3 w-3" />
+                                )}
+                                Out for Delivery
+                              </Button>
+                            )}
+
+                            {((order.status === "ready" && isPickup) ||
+                              order.status === "porter_booked" ||
+                              order.status === "out_for_delivery") && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2.5 text-xs font-bold gap-1 text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/10 cursor-pointer shadow-2xs"
+                                onClick={() => handleStatusChange(order.id, "delivered")}
+                                disabled={actionLoadingId === order.id}
+                                title="Mark Delivered (1-click)"
+                              >
+                                {actionLoadingId === order.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="h-3 w-3" />
+                                )}
+                                Delivered
+                              </Button>
+                            )}
+
                             {/* Print Bill Button */}
                             <Button
                               type="button"
                               variant="outline"
                               size="icon"
                               onClick={() => setBillModalOrderId(order.id)}
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                              title="Print Kitchen Bill"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                              title="Print Kitchen Thermal Receipt"
                             >
                               <Printer className="h-3.5 w-3.5" />
                             </Button>
@@ -1038,13 +1119,14 @@ export default function OrdersPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger
                                 className="inline-flex items-center justify-center rounded-lg border border-border h-7 w-7 hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                                title="More Actions"
                               >
                                 <MoreVertical className="h-3.5 w-3.5" />
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-44 text-xs font-sans">
+                              <DropdownMenuContent align="end" className="w-48 text-xs font-sans">
                                 <DropdownMenuItem onClick={() => setDetailsModalOrder(order)}>
                                   <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                                  View Details
+                                  View Full Details
                                 </DropdownMenuItem>
 
                                 <DropdownMenuItem onClick={() => setBillModalOrderId(order.id)}>
@@ -1052,51 +1134,13 @@ export default function OrdersPage() {
                                   Print Thermal Receipt
                                 </DropdownMenuItem>
 
-                                <DropdownMenuSeparator />
-
-                                {/* Status Transitions */}
-                                {order.status === "placed" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleStatusChange(order.id, "preparing")}
-                                    disabled={actionLoadingId === order.id}
-                                    className="text-amber-500"
-                                  >
-                                    <Clock className="mr-2 h-3.5 w-3.5" />
-                                    Mark Preparing
-                                  </DropdownMenuItem>
-                                )}
-
-                                {order.status === "preparing" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleStatusChange(order.id, "ready")}
-                                    disabled={actionLoadingId === order.id}
-                                    className="text-blue-500"
-                                  >
-                                    <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                                    {isPickup ? "Mark Ready for Pickup" : "Mark Ready"}
-                                  </DropdownMenuItem>
-                                )}
-
                                 {order.status === "ready" && !isPickup && (
                                   <DropdownMenuItem
                                     onClick={() => setCourierModalOrder(order)}
-                                    className="text-indigo-400"
+                                    className="text-sky-400 font-medium"
                                   >
                                     <Truck className="mr-2 h-3.5 w-3.5" />
                                     Dispatch with Borzo
-                                  </DropdownMenuItem>
-                                )}
-
-                                {(order.status === "ready" ||
-                                  order.status === "porter_booked" ||
-                                  order.status === "out_for_delivery") && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleStatusChange(order.id, "delivered")}
-                                    disabled={actionLoadingId === order.id}
-                                    className="text-emerald-500 font-semibold"
-                                  >
-                                    <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                                    Mark Delivered
                                   </DropdownMenuItem>
                                 )}
 
@@ -1110,7 +1154,7 @@ export default function OrdersPage() {
                                       className="text-destructive font-semibold"
                                     >
                                       <Ban className="mr-2 h-3.5 w-3.5" />
-                                      Cancel Order
+                                      Cancel Order & Refund
                                     </DropdownMenuItem>
                                   </>
                                 )}
