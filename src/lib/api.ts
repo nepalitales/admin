@@ -693,6 +693,7 @@ export interface OrderDeliveryAddress {
 
 export interface OrderPayment {
   provider: string;
+  mode?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   razorpaySignature?: string;
@@ -767,9 +768,12 @@ export interface OrdersListResponse {
     totalPages: number;
   };
   counts: {
+    all?: number;
     placed: number;
     preparing: number;
     ready: number;
+    outForDelivery?: number;
+    delivered?: number;
   };
 }
 
@@ -867,6 +871,7 @@ export interface KitchenBill {
 export async function getOrders(
   params?: {
     status?: string;
+    date?: string;
     search?: string;
     page?: number;
     limit?: number;
@@ -875,6 +880,7 @@ export async function getOrders(
 ) {
   const query = new URLSearchParams();
   if (params?.status) query.set("status", params.status);
+  if (params?.date) query.set("date", params.date);
   if (params?.search) query.set("search", params.search);
   if (params?.page) query.set("page", String(params.page));
   if (params?.limit) query.set("limit", String(params.limit));
