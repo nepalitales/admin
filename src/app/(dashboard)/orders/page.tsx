@@ -652,12 +652,12 @@ export default function OrdersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px]">Order #</TableHead>
-                  <TableHead className="w-[180px]">Customer</TableHead>
-                  <TableHead className="min-w-[200px] max-w-[280px]">Items & Total</TableHead>
-                  <TableHead className="w-[120px]">Status</TableHead>
-                  <TableHead className="w-[130px]">Fulfillment</TableHead>
-                  <TableHead className="text-right w-[160px]">Actions</TableHead>
+                  <TableHead className="w-30">Order #</TableHead>
+                  <TableHead className="w-45">Customer</TableHead>
+                  <TableHead className="min-w-50 max-w-70">Items & Total</TableHead>
+                  <TableHead className="w-30">Status</TableHead>
+                  <TableHead className="w-32.5">Fulfillment</TableHead>
+                  <TableHead className="text-right w-40">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -731,7 +731,7 @@ export default function OrdersPage() {
                         </TableCell>
 
                         {/* Customer Info */}
-                        <TableCell className="max-w-[180px]">
+                        <TableCell className="max-w-45">
                           <div className="font-medium text-xs truncate" title={order.customer.name}>
                             {order.customer.name}
                           </div>
@@ -744,14 +744,14 @@ export default function OrdersPage() {
                         </TableCell>
 
                         {/* Items & Amount */}
-                        <TableCell className="max-w-[280px]">
+                        <TableCell className="max-w-70">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <span className="font-bold text-xs text-foreground">₹{order.totalAmount}</span>
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground">
                               {order.items.reduce((sum, item) => sum + item.quantity, 0)} {order.items.reduce((sum, item) => sum + item.quantity, 0) === 1 ? "item" : "items"}
                             </Badge>
                           </div>
-                          <div className="flex flex-wrap gap-1 max-w-[270px]">
+                          <div className="flex flex-wrap gap-1 max-w-67.5">
                             {(expandedOrders[order.id] ? order.items : order.items.slice(0, 3)).map((item, idx) => {
                               const addonCount = item.addons?.reduce((sum, a) => sum + a.quantity, 0) || 0;
                               return (
@@ -761,7 +761,7 @@ export default function OrdersPage() {
                                   title={addonCount > 0 ? `${item.productName} (+${addonCount} add-on${addonCount > 1 ? "s" : ""})` : item.productName}
                                 >
                                   <span className="font-bold text-primary mr-1">{item.quantity}x</span>
-                                  <span className="truncate max-w-[120px]">{item.productName}</span>
+                                  <span className="truncate max-w-30">{item.productName}</span>
                                   {addonCount > 0 && (
                                     <span className="ml-1 text-[9px] text-muted-foreground font-mono">+{addonCount}</span>
                                   )}
