@@ -899,8 +899,14 @@ export async function getCancelledOrders(options?: RequestOptions) {
   });
 }
 
+export interface ReportQueryParams {
+  date?: string;
+  month?: string;
+  period?: ReportPeriod;
+}
+
 export async function getMonthlyReports(
-  params?: string | { month?: string; period?: ReportPeriod },
+  params?: string | ReportQueryParams,
   options?: RequestOptions,
 ) {
   let qs = "";
@@ -908,6 +914,7 @@ export async function getMonthlyReports(
     qs = `?month=${params}`;
   } else if (params) {
     const sp = new URLSearchParams();
+    if (params.date) sp.set("date", params.date);
     if (params.period) sp.set("period", params.period);
     if (params.month) sp.set("month", params.month);
     const s = sp.toString();

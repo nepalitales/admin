@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo } from "react";
 import {
   getMonthlyReports,
   type MonthlyReportsResponse,
-  type ReportPeriod,
   type ReportTimelinePoint,
 } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,19 +18,22 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import {
   BarChart3,
   TrendingUp,
   ShoppingBag,
   IndianRupee,
   UtensilsCrossed,
-  Trophy,
-  Calendar,
-  Sparkles,
-  ArrowUpRight,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Clock,
   PackageCheck,
-  Ban,
   Activity,
+  CalendarCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -65,27 +67,73 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+/**
+ * Format a Date object to "YYYY-MM-DD" local/IST date string.
+ */
+function formatDateKey(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function ReportsPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState<ReportPeriod>("this_month");
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [activeChartMetric, setActiveChartMetric] = useState<"revenue" | "orders">("revenue");
   const [reportData, setReportData] = useState<MonthlyReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchReports = async (period: ReportPeriod) => {
+  const selectedDateKey = useMemo(() => formatDateKey(selectedDate), [selectedDate]);
+
+  const isToday = useMemo(() => {
+    const today = new Date();
+    return (
+      selectedDate.getDate() === today.getDate() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear()
+    );
+  }, [selectedDate]);
+
+  const formattedDateDisplay = useMemo(() => {
+    return new Intl.DateTimeFormat("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(selectedDate);
+  }, [selectedDate]);
+
+  const formattedDayFull = useMemo(() => {
+    return new Intl.DateTimeFormat("en-IN", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(selectedDate);
+  }, [selectedDate]);
+
+  const fetchReports = async (dateStr: string) => {
     setLoading(true);
     try {
-      const res = await getMonthlyReports({ period });
+      const res = await getMonthlyReports({ date: dateStr });
       setReportData(res);
     } catch (err: any) {
-      toast.error("Failed to load analytics: " + (err.message || "Unknown error"));
+      toast.error("Failed to load daily analytics: " + (err.message || "Unknown error"));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchReports(selectedPeriod);
-  }, [selectedPeriod]);
+    fetchReports(selectedDateKey);
+  }, [selectedDateKey]);
+
+  const handleShiftDay = (delta: number) => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + delta);
+    if (next > new Date()) return;
+    setSelectedDate(next);
+  };
 
   const summary = reportData?.summary;
   const topProducts = reportData?.topProducts || [];
@@ -96,7 +144,7 @@ export default function ReportsPage() {
     1,
   );
 
-  // Peak statistics from timeline
+  // Peak statistics from hourly timeline
   const peakStats = useMemo(() => {
     if (!timeline || timeline.length === 0) {
       return { peakRevenue: 0, peakRevenueLabel: "—", peakOrders: 0, peakOrdersLabel: "—" };
@@ -125,96 +173,103 @@ export default function ReportsPage() {
     };
   }, [timeline]);
 
-  // Format short axis tick label
-  const formatAxisDate = (dateStr: string, label: string) => {
-    if (selectedPeriod === "this_week") {
-      // E.g., "Mon, 5 Oct" -> "Mon 5"
-      const parts = label.split(", ");
-      return parts[0] || dateStr;
-    }
-    if (selectedPeriod === "this_year") {
-      // E.g., "Jan 2026" -> "Jan"
-      return label.split(" ")[0] || label;
-    }
-    // E.g., "5 Oct" -> "5 Oct"
-    return label;
-  };
-
   return (
     <div className="space-y-6 pb-12">
-      {/* ─── Page Header with Segmented Period Selector ───────────────── */}
+      {/* ─── Page Header with Day-Wise Date Picker ─────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <BarChart3 className="h-6 w-6 text-primary" />
-              Reports & Performance Analytics
+              Daily Reports &amp; Analytics
             </h2>
             <Badge variant="outline" className="border-primary/40 text-primary text-xs font-mono">
               Live Reports
             </Badge>
           </div>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-            Track business growth, gross revenue, order volume trends, and top-selling momo items.
+            Select any date to view that day&apos;s gross revenue, orders volume, hourly trend, and top-selling momos.
           </p>
         </div>
 
-        {/* Period Selector: This Week | This Month | Last Month | This Year */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 self-start md:self-auto">
-          <div className="flex items-center bg-muted/50 p-1 rounded-xl border border-border">
+        {/* Day-Wise Navigation & shadcn Calendar Date Picker */}
+        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+          <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border">
+            {/* Prev Day Button */}
             <Button
               type="button"
-              size="sm"
-              variant={selectedPeriod === "this_week" ? "default" : "ghost"}
-              onClick={() => setSelectedPeriod("this_week")}
-              className="text-xs h-8 px-3 rounded-lg font-medium transition-all"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
+              onClick={() => handleShiftDay(-1)}
+              title="Previous Day"
             >
-              This Week
+              <ChevronLeft className="h-4 w-4" />
             </Button>
+
+            {/* shadcn Popover with Calendar */}
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger className="inline-flex items-center gap-2 h-8 px-3 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold shadow-xs transition-all cursor-pointer">
+                <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                <span>{isToday ? `Today (${formattedDateDisplay})` : formattedDateDisplay}</span>
+                <ChevronDown className="h-3 w-3 opacity-60 ml-0.5" />
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setSelectedDate(date);
+                      setCalendarOpen(false);
+                    }
+                  }}
+                  disabled={(date) => date > new Date()}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Next Day Button */}
             <Button
               type="button"
-              size="sm"
-              variant={selectedPeriod === "this_month" ? "default" : "ghost"}
-              onClick={() => setSelectedPeriod("this_month")}
-              className="text-xs h-8 px-3 rounded-lg font-medium transition-all"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-40"
+              onClick={() => handleShiftDay(1)}
+              disabled={isToday}
+              title="Next Day"
             >
-              This Month
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={selectedPeriod === "last_month" ? "default" : "ghost"}
-              onClick={() => setSelectedPeriod("last_month")}
-              className="text-xs h-8 px-3 rounded-lg font-medium transition-all"
-            >
-              Last Month
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={selectedPeriod === "this_year" ? "default" : "ghost"}
-              onClick={() => setSelectedPeriod("this_year")}
-              className="text-xs h-8 px-3 rounded-lg font-medium transition-all"
-            >
-              This Year
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
 
-          {reportData?.periodLabel && (
-            <Badge
-              variant="outline"
-              className="text-xs font-medium px-2.5 py-1 border-border bg-card/80 flex items-center gap-1.5 text-muted-foreground"
+          {/* Today Shortcut Button */}
+          {!isToday && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 px-2.5 text-xs font-semibold shadow-xs"
+              onClick={() => setSelectedDate(new Date())}
             >
-              <Calendar className="h-3.5 w-3.5 text-primary" />
-              <span>{reportData.periodLabel}</span>
-            </Badge>
+              <CalendarCheck className="h-3.5 w-3.5 mr-1 text-primary" />
+              Today
+            </Button>
           )}
+
+          <Badge
+            variant="outline"
+            className="text-xs font-medium px-2.5 py-1 border-border bg-card/80 flex items-center gap-1.5 text-muted-foreground"
+          >
+            <Clock className="h-3.5 w-3.5 text-primary" />
+            <span>{reportData?.periodLabel || formattedDayFull}</span>
+          </Badge>
         </div>
       </div>
 
-      {/* ─── KPI Stats Grid ───────────────────────────────────────────── */}
+      {/* ─── KPI Stats Grid (Single Day Metrics) ───────────────────────── */}
       <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Gross Revenue (With ₹ symbol, NOT dollar) */}
+        {/* Total Gross Revenue */}
         <Card className="border-emerald-500/20 bg-emerald-500/5 shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -233,7 +288,7 @@ export default function ReportsPage() {
               </div>
             )}
             <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-              <span className="text-emerald-400 font-semibold">•</span> Excludes cancelled / refunded orders
+              <span className="text-emerald-400 font-semibold">•</span> Excludes cancelled / refunded orders on this day
             </p>
           </CardContent>
         </Card>
@@ -257,7 +312,7 @@ export default function ReportsPage() {
               </div>
             )}
             <p className="text-[11px] text-muted-foreground mt-1">
-              Total placed: <strong className="text-foreground">{summary?.totalOrdersCount || 0}</strong> orders
+              Total placed: <strong className="text-foreground">{summary?.totalOrdersCount || 0}</strong> orders on this day
             </p>
           </CardContent>
         </Card>
@@ -281,7 +336,7 @@ export default function ReportsPage() {
               </div>
             )}
             <p className="text-[11px] text-muted-foreground mt-1">
-              Per completed customer order
+              Per completed order on this day
             </p>
           </CardContent>
         </Card>
@@ -307,28 +362,22 @@ export default function ReportsPage() {
               </div>
             )}
             <p className="text-[11px] text-muted-foreground mt-1">
-              Customer or kitchen cancellations
+              Customer or kitchen cancellations on this day
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* ─── Hero Accurate Performance Graph ─────────────────────────── */}
+      {/* ─── Hero Hourly Performance Graph ─────────────────────────────── */}
       <Card className="border-border/80 bg-card/80 shadow-md">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/60">
           <div className="space-y-0.5">
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <Activity className="h-4 w-4 text-emerald-400" />
-              <span>
-                {selectedPeriod === "this_year"
-                  ? "Annual Performance & Monthly Breakdown"
-                  : "Performance Trend & Daily Breakdown"}
-              </span>
+              <span>Hourly Performance &amp; Order Trend</span>
             </CardTitle>
             <CardDescription className="text-xs">
-              {selectedPeriod === "this_year"
-                ? `Monthly revenue and delivery order volume across ${reportData?.periodLabel || "this year"}.`
-                : `Daily revenue and delivery order volume across ${reportData?.periodLabel || "selected timeframe"}.`}
+              Hourly revenue and order volume across {reportData?.periodLabel || formattedDayFull}.
             </CardDescription>
           </div>
 
@@ -339,7 +388,7 @@ export default function ReportsPage() {
               size="sm"
               variant={activeChartMetric === "revenue" ? "secondary" : "ghost"}
               onClick={() => setActiveChartMetric("revenue")}
-              className="text-xs h-7 px-3 gap-1.5"
+              className="text-xs h-7 px-3 gap-1.5 font-medium"
             >
               <IndianRupee className="h-3 w-3 text-emerald-400" />
               Revenue (₹)
@@ -349,7 +398,7 @@ export default function ReportsPage() {
               size="sm"
               variant={activeChartMetric === "orders" ? "secondary" : "ghost"}
               onClick={() => setActiveChartMetric("orders")}
-              className="text-xs h-7 px-3 gap-1.5"
+              className="text-xs h-7 px-3 gap-1.5 font-medium"
             >
               <PackageCheck className="h-3 w-3 text-blue-400" />
               Orders Volume
@@ -362,7 +411,7 @@ export default function ReportsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/60 text-xs">
             <div>
               <span className="text-[10px] text-muted-foreground uppercase font-semibold">
-                Period Revenue
+                Day Revenue
               </span>
               <p className="text-sm font-bold text-emerald-400 font-mono">
                 ₹{summary?.totalRevenue.toLocaleString("en-IN") || 0}
@@ -370,7 +419,7 @@ export default function ReportsPage() {
             </div>
             <div>
               <span className="text-[10px] text-muted-foreground uppercase font-semibold">
-                {selectedPeriod === "this_year" ? "Peak Month Revenue" : "Peak Revenue Day"}
+                Peak Revenue Hour
               </span>
               <p className="text-sm font-bold text-foreground truncate">
                 {peakStats.peakRevenue > 0 ? peakStats.peakRevenueLabel : "No orders yet"}
@@ -378,7 +427,7 @@ export default function ReportsPage() {
             </div>
             <div className="col-span-2 sm:col-span-1">
               <span className="text-[10px] text-muted-foreground uppercase font-semibold">
-                {selectedPeriod === "this_year" ? "Peak Month Volume" : "Peak Order Volume"}
+                Peak Order Volume
               </span>
               <p className="text-sm font-bold text-blue-400 truncate">
                 {peakStats.peakOrders > 0 ? peakStats.peakOrdersLabel : "No orders yet"}
@@ -391,10 +440,23 @@ export default function ReportsPage() {
             <div className="h-70 w-full flex items-center justify-center">
               <Skeleton className="h-65 w-full rounded-xl" />
             </div>
-          ) : timeline.length === 0 ? (
-            <div className="h-65 w-full flex flex-col items-center justify-center space-y-2 text-muted-foreground border border-dashed rounded-xl">
-              <BarChart3 className="h-8 w-8 opacity-40" />
-              <p className="text-xs font-medium">No order data recorded for this timeframe.</p>
+          ) : timeline.length === 0 || (summary?.totalOrdersCount === 0 && summary?.totalRevenue === 0) ? (
+            <div className="h-65 w-full flex flex-col items-center justify-center space-y-2 text-muted-foreground border border-dashed rounded-xl p-6 text-center">
+              <BarChart3 className="h-8 w-8 opacity-40 text-muted-foreground" />
+              <p className="text-xs font-semibold text-foreground">No orders recorded on {formattedDateDisplay}</p>
+              <p className="text-[11px] text-muted-foreground max-w-sm">
+                Select another date using the calendar picker above or jump back to Today.
+              </p>
+              {!isToday && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedDate(new Date())}
+                  className="mt-2 text-xs"
+                >
+                  View Today&apos;s Orders
+                </Button>
+              )}
             </div>
           ) : (
             <ChartContainer config={chartConfig} className="h-70 w-full">
@@ -411,15 +473,11 @@ export default function ReportsPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/40" />
                   <XAxis
-                    dataKey="date"
+                    dataKey="label"
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    minTickGap={20}
-                    tickFormatter={(val) => {
-                      const item = timeline.find((t) => t.date === val);
-                      return item ? formatAxisDate(val, item.label) : val;
-                    }}
+                    minTickGap={24}
                     className="text-[11px] fill-muted-foreground font-mono"
                   />
                   <YAxis
@@ -436,7 +494,7 @@ export default function ReportsPage() {
                         indicator="dot"
                         labelFormatter={(_, payload) => {
                           const item = payload?.[0]?.payload as ReportTimelinePoint | undefined;
-                          return item?.label || "";
+                          return item ? `Hour: ${item.label}` : "";
                         }}
                         formatter={(value, name) => {
                           if (name === "revenue") {
@@ -445,6 +503,16 @@ export default function ReportsPage() {
                                 <span className="text-muted-foreground">Revenue</span>
                                 <span className="font-bold font-mono text-emerald-400">
                                   ₹{Number(value).toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            );
+                          }
+                          if (name === "orders") {
+                            return (
+                              <div className="flex items-center justify-between w-full gap-4">
+                                <span className="text-muted-foreground">Orders</span>
+                                <span className="font-bold font-mono text-blue-400">
+                                  {value} orders
                                 </span>
                               </div>
                             );
@@ -460,7 +528,6 @@ export default function ReportsPage() {
                     stroke="#10b981"
                     strokeWidth={2.5}
                     fill="url(#fillRevenue)"
-                    activeDot={{ r: 5, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }}
                   />
                 </AreaChart>
               ) : (
@@ -470,33 +537,26 @@ export default function ReportsPage() {
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/40" />
                   <XAxis
-                    dataKey="date"
+                    dataKey="label"
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    minTickGap={20}
-                    tickFormatter={(val) => {
-                      const item = timeline.find((t) => t.date === val);
-                      return item ? formatAxisDate(val, item.label) : val;
-                    }}
+                    minTickGap={24}
                     className="text-[11px] fill-muted-foreground font-mono"
                   />
                   <YAxis
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    allowDecimals={false}
-                    tickFormatter={(val) => `${val}`}
                     className="text-[11px] fill-muted-foreground font-mono"
                   />
                   <ChartTooltip
-                    cursor={{ fill: "rgba(255, 255, 255, 0.05)" }}
+                    cursor={{ fill: "rgba(59, 130, 246, 0.08)" }}
                     content={
                       <ChartTooltipContent
-                        indicator="dot"
                         labelFormatter={(_, payload) => {
                           const item = payload?.[0]?.payload as ReportTimelinePoint | undefined;
-                          return item?.label || "";
+                          return item ? `Hour: ${item.label}` : "";
                         }}
                         formatter={(value, name) => {
                           if (name === "orders") {
@@ -504,7 +564,17 @@ export default function ReportsPage() {
                               <div className="flex items-center justify-between w-full gap-4">
                                 <span className="text-muted-foreground">Paid Orders</span>
                                 <span className="font-bold font-mono text-blue-400">
-                                  {value} orders
+                                  {value}
+                                </span>
+                              </div>
+                            );
+                          }
+                          if (name === "cancelledOrders") {
+                            return (
+                              <div className="flex items-center justify-between w-full gap-4">
+                                <span className="text-muted-foreground">Cancelled</span>
+                                <span className="font-bold font-mono text-rose-400">
+                                  {value}
                                 </span>
                               </div>
                             );
@@ -518,7 +588,13 @@ export default function ReportsPage() {
                     dataKey="orders"
                     fill="#3b82f6"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={36}
+                    maxBarSize={30}
+                  />
+                  <Bar
+                    dataKey="cancelledOrders"
+                    fill="#f43f5e"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={30}
                   />
                 </BarChart>
               )}
@@ -527,22 +603,24 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
-      {/* ─── Top Products Leaderboard ─────────────────────────────────── */}
-      <Card className="border-border/80 bg-card/80 shadow-xs">
+      {/* ─── Top Selling Momos & Menu Items ───────────────────────────── */}
+      <Card className="border-border/80 bg-card/80 shadow-md">
         <CardHeader className="pb-3 border-b border-border/60">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-amber-400" />
-                <span>Top Selling Momos & Menu Items</span>
+                <UtensilsCrossed className="h-4 w-4 text-amber-500" />
+                <span>Top Selling Momos &amp; Menu Items</span>
               </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Ranked by volume sold and revenue contribution for {reportData?.periodLabel || "selected period"}.
-              </p>
+              <CardDescription className="text-xs">
+                Ranked by volume sold and revenue contribution on {reportData?.periodLabel || formattedDayFull}.
+              </CardDescription>
             </div>
-            <Badge variant="outline" className="text-xs font-medium">
-              {topProducts.length} Items Sold
-            </Badge>
+            {topProducts.length > 0 && (
+              <Badge variant="outline" className="font-mono text-xs">
+                {topProducts.length} Items Sold
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -573,7 +651,7 @@ export default function ReportsPage() {
                     <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-sm">
                       <div className="flex flex-col items-center justify-center">
                         <UtensilsCrossed className="h-6 w-6 mb-1 opacity-40" />
-                        <p className="text-xs">No product sales recorded for this timeframe.</p>
+                        <p className="text-xs">No product sales recorded on this date.</p>
                       </div>
                     </TableCell>
                   </TableRow>
