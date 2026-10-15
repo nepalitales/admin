@@ -82,12 +82,15 @@ export async function generateKitchenBillPdf(bill: KitchenBill): Promise<Uint8Ar
     bold: true,
   });
   lines.push({
-    left: `Order #: ${bill.order.orderNumber}`,
+    left: `Phone: ${bill.customer.phone || "—"}`,
     right: formattedDate,
   });
   lines.push({
-    left: `TYPE: ${fulfillmentType}`,
+    left: `Order #: ${bill.order.orderNumber}`,
     right: `Time: ${formattedTime}`,
+  });
+  lines.push({
+    left: `TYPE: ${fulfillmentType}`,
     bold: true,
   });
 

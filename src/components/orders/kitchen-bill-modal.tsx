@@ -222,19 +222,24 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                 </td>
               </tr>
               <tr>
-                <td style="text-align: left; vertical-align: top;">
-                  Order #: ${b.order.orderNumber}
+                <td style="text-align: left; font-weight: 700; vertical-align: top;">
+                  Ph: ${b.customer.phone || "—"}
                 </td>
                 <td style="text-align: right; vertical-align: top;">
                   ${formattedDate}
                 </td>
               </tr>
               <tr>
-                <td style="text-align: left; font-weight: 800; vertical-align: top;">
-                  MODE: ${fulfillmentType}
+                <td style="text-align: left; vertical-align: top;">
+                  Order #: ${b.order.orderNumber}
                 </td>
                 <td style="text-align: right; vertical-align: top;">
                   Time: ${formattedTime}
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: left; font-weight: 800; vertical-align: top;" colspan="2">
+                  MODE: ${fulfillmentType}
                 </td>
               </tr>
               <tr>
@@ -244,7 +249,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
               </tr>
               <tr>
                 <td colspan="2" style="text-align: left; font-size: 10px; line-height: 13px; padding-top: 2px; font-weight: 600;">
-                  ${isPickup ? "Pickup: Metropolis Rivera, Shop 10" : `Address: ${b.customer.deliveryAddress}`}
+                  ${isPickup ? "Pickup: Metropolis Rivera, Shop 10" : `Address: ${b.customer.deliveryAddress || "Thane, Maharashtra"}`}
                 </td>
               </tr>
               ${
@@ -456,11 +461,19 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                   </td>
                 </tr>
                 <tr>
+                  <td className="text-left font-semibold align-top pb-0.5">
+                    Ph: {bill.customer.phone || "—"}
+                  </td>
+                  <td className="text-right align-top pb-0.5 whitespace-nowrap">
+                    {formattedDate}
+                  </td>
+                </tr>
+                <tr>
                   <td className="text-left align-top pb-0.5">
                     Order #: {bill.order.orderNumber}
                   </td>
                   <td className="text-right align-top pb-0.5 whitespace-nowrap">
-                    {formattedDate}
+                    {formattedTime}
                   </td>
                 </tr>
                 <tr>
@@ -477,7 +490,7 @@ export function KitchenBillModal({ orderId, open, onOpenChange }: KitchenBillMod
                   <td colSpan={2} className="text-left text-[10px] leading-tight text-neutral-800 pt-0.5">
                     {(bill.order.orderType || "delivery") === "pickup"
                       ? "Pickup: Metropolis Rivera, Shop No 10"
-                      : `Address: ${bill.customer.deliveryAddress}`}
+                      : `Address: ${bill.customer.deliveryAddress || "Thane, Maharashtra"}`}
                   </td>
                 </tr>
                 {bill.customer.note && (
