@@ -39,6 +39,7 @@ import {
   Copy,
   Check,
   Info,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { formatTime12 } from "@/lib/utils";
@@ -410,34 +411,34 @@ export default function OrderWindowsPage() {
                       variant="outline"
                       className="text-[10px] border-amber-500/40 text-amber-500 bg-amber-500/10"
                     >
-                      Kitchen Off
+                      Dispatch Off · Delivers Tue
                     </Badge>
                   )}
                   {isEveOfWeeklyOff && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] border-amber-500/50 text-amber-500 bg-amber-500/10 font-medium"
+                      className="text-[10px] border-rose-500/50 text-rose-500 bg-rose-500/10 font-medium"
                     >
-                      Kitchen Closed Tomorrow
+                      Intake Closed Today
                     </Badge>
                   )}
                   <Badge variant={isEveOfWeeklyOff ? "secondary" : day.enabled ? "default" : "secondary"} className="text-xs">
-                    {isEveOfWeeklyOff ? "Intake Paused" : day.enabled ? "Intake Open" : "Closed"}
+                    {isEveOfWeeklyOff ? "Intake Closed" : day.enabled ? "Intake Open" : "Closed"}
                   </Badge>
                 </div>
               </CardHeader>
 
               <CardContent className="space-y-2">
                 {isWeeklyOff && (
-                  <div className="text-[11px] text-foreground bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
-                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                    <span>Kitchen closed today. Pre-orders taken for next operating day.</span>
+                  <div className="text-[11px] text-foreground bg-amber-500/10 border border-amber-500/20 rounded-md p-2 flex items-center gap-2">
+                    <Truck className="h-4 w-4 shrink-0 text-amber-500" />
+                    <span>Dispatches paused today. Customer ordering is <strong>active for {DAY_LABELS[nextDay]} delivery</strong>.</span>
                   </div>
                 )}
                 {isEveOfWeeklyOff && (
-                  <div className="text-[11px] text-foreground bg-amber-500/10 border border-amber-500/20 rounded-md p-1.5 flex items-center gap-1.5">
-                    <CalendarOff className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                    <span>Ordering closed on this day (kitchen closed tomorrow on {DAY_LABELS[nextDay]}).</span>
+                  <div className="text-[11px] text-foreground bg-rose-500/10 border border-rose-500/20 rounded-md p-2 flex items-center gap-2">
+                    <CalendarOff className="h-4 w-4 shrink-0 text-rose-500" />
+                    <span>Storefront intake is <strong>closed today</strong> because tomorrow ({DAY_LABELS[nextDay]}) is kitchen weekly off.</span>
                   </div>
                 )}
                 {hasSlots ? (
@@ -472,11 +473,11 @@ export default function OrderWindowsPage() {
 
                 {/* Card Action Hint */}
                 <div className="pt-2 border-t flex items-center justify-between text-[11px] text-muted-foreground">
-                  {isWeeklyOff ? (
+                  {isEveOfWeeklyOff ? (
                     <>
-                      <span className="text-destructive/80 font-medium">Weekly closure</span>
+                      <span className="text-rose-500 font-medium">Intake closed</span>
                       <span className="text-primary font-medium hover:underline flex items-center gap-0.5">
-                        Manage Closure <ArrowUpRight className="h-3 w-3" />
+                        Manage in Weekly Off <ArrowUpRight className="h-3 w-3" />
                       </span>
                     </>
                   ) : (
@@ -551,12 +552,11 @@ export default function OrderWindowsPage() {
                 id="day-enabled"
                 checked={enabled}
                 onCheckedChange={setEnabled}
-                disabled={editDay ? weeklyOff.includes(editDay.day) : false}
               />
             </div>
 
             {/* Time Slots List */}
-            {enabled && !weeklyOff.includes(editDay?.day ?? "") && (
+            {enabled && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -695,12 +695,10 @@ export default function OrderWindowsPage() {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              {!weeklyOff.includes(editDay?.day ?? "") && (
-                <Button type="submit" disabled={saving || (enabled && !!slotError)}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {applyToAllDays ? "Apply to All Operating Days" : "Save Changes"}
-                </Button>
-              )}
+              <Button type="submit" disabled={saving || (enabled && !!slotError)}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {applyToAllDays ? "Apply to All Operating Days" : "Save Changes"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

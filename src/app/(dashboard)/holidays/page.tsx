@@ -10,6 +10,8 @@ import {
   format,
   addMonths,
   subMonths,
+  addDays,
+  subDays,
   isSameMonth,
   isToday,
 } from "date-fns";
@@ -20,13 +22,13 @@ import {
   updateHoliday,
   deleteHoliday,
   getWeeklyOff,
-  updateWeeklyOff,
   type Holiday,
   ApiError,
 } from "@/lib/api";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -65,17 +67,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
+  Sparkles,
+  ArrowRight,
+  Truck,
+  ShoppingBag,
 } from "lucide-react";
-
-const ALL_DAYS = [
-  { key: "sunday", short: "Sun", full: "Sunday" },
-  { key: "monday", short: "Mon", full: "Monday" },
-  { key: "tuesday", short: "Tue", full: "Tuesday" },
-  { key: "wednesday", short: "Wed", full: "Wednesday" },
-  { key: "thursday", short: "Thu", full: "Thursday" },
-  { key: "friday", short: "Fri", full: "Friday" },
-  { key: "saturday", short: "Sat", full: "Saturday" },
-] as const;
+import Link from "next/link";
 
 const DAY_INDEX_MAP: Record<number, string> = {
   0: "sunday",
@@ -131,6 +128,19 @@ export default function HolidaysPage() {
     return map;
   }, [holidays]);
 
+  // Set of dates that are the eve (day before) a scheduled holiday
+  const eveOfHolidayMap = useMemo(() => {
+    const map = new Map<string, Holiday>();
+    for (const h of holidays) {
+      try {
+        const holidayDate = new Date(h.date + "T12:00:00");
+        const eveDateStr = format(subDays(holidayDate, 1), "yyyy-MM-dd");
+        map.set(eveDateStr, h);
+      } catch {}
+    }
+    return map;
+  }, [holidays]);
+
   // Sorted holidays for the scheduled closures list
   const sortedHolidays = useMemo(() => {
     return [...holidays].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -144,30 +154,6 @@ export default function HolidaysPage() {
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentMonth]);
-
-  // Quick toggle for recurring weekly off
-  const toggleWeeklyOff = async (dayKey: string) => {
-    const updated = weeklyOff.includes(dayKey)
-      ? weeklyOff.filter((d) => d !== dayKey)
-      : [...weeklyOff, dayKey];
-
-    // Optimistic update
-    setWeeklyOff(updated);
-
-    try {
-      await updateWeeklyOff(updated);
-      const dayName = dayKey.charAt(0).toUpperCase() + dayKey.slice(1);
-      toast.success(
-        updated.includes(dayKey)
-          ? `${dayName} marked as closed weekly`
-          : `${dayName} marked as open weekly`,
-      );
-    } catch (err) {
-      // Revert on error
-      setWeeklyOff(weeklyOff);
-      toast.error(err instanceof ApiError ? err.message : "Failed to update weekly off");
-    }
-  };
 
   const resetForm = () => {
     setDate("");
@@ -197,7 +183,7 @@ export default function HolidaysPage() {
     if (isOff) {
       const dayName = format(day, "EEEE");
       toast.info(
-        `${dayName} is already configured as a recurring Weekly Off. You can adjust weekly off days in the schedule above.`,
+        `${dayName} is already configured as a recurring Weekly Off. You can adjust weekly off in the Weekly Off tab.`,
       );
       return;
     }
@@ -242,7 +228,7 @@ export default function HolidaysPage() {
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", {
+      return new Date(dateStr + "T12:00:00").toLocaleDateString("en-IN", {
         weekday: "short",
         year: "numeric",
         month: "short",
@@ -252,6 +238,21 @@ export default function HolidaysPage() {
       return dateStr;
     }
   };
+
+  // Helper calculation for the form modal preview
+  const formPreview = useMemo(() => {
+    if (!date) return null;
+    try {
+      const holDate = new Date(date + "T12:00:00");
+      const eveDate = subDays(holDate, 1);
+      return {
+        holidayFormatted: format(holDate, "EEEE, d MMMM yyyy"),
+        eveFormatted: format(eveDate, "EEEE, d MMMM yyyy"),
+      };
+    } catch {
+      return null;
+    }
+  }, [date]);
 
   if (loading) {
     return (
@@ -264,73 +265,67 @@ export default function HolidaysPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto pb-10">
       {/* Page Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Holidays & Schedule</h2>
-        <p className="text-sm text-muted-foreground">
-          Operating schedule, kitchen hours & holiday calendar
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Holiday &amp; Festival Calendar</h2>
+          <p className="text-sm text-muted-foreground">
+            Schedule festival holidays (e.g. Dussehra, Diwali, Maintenance) where the kitchen is 100% free.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/weekly-off"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <CalendarOff className="h-4 w-4 mr-1.5 text-muted-foreground" />
+            Manage Weekly Off
+          </Link>
+          <Button size="sm" onClick={() => openCreate()}>
+            <Plus className="mr-1.5 h-4 w-4" /> Add Holiday
+          </Button>
+        </div>
       </div>
 
-      {/* 1. Weekly Off Schedule Card */}
-      <Card>
-        <CardHeader className="pb-3">
+      {/* ── 1-Day Advance Pre-Order Architectural Rule Callout ── */}
+      <Card className="border-amber-500/30 bg-amber-500/5">
+        <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base font-semibold">Weekly Off Schedule</CardTitle>
+            <div className="flex items-center gap-2 font-bold text-sm text-foreground">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <span>How Festival &amp; Special Holidays Work (1-Day Advance Pre-Order)</span>
             </div>
-            <span className="text-xs text-muted-foreground font-medium">
-              {weeklyOff.length === 0
-                ? "Open all 7 days"
-                : `${weeklyOff.length} day${weeklyOff.length === 1 ? "" : "s"} closed weekly`}
-            </span>
-          </div>
-          <CardDescription className="text-xs">
-            Click any day to immediately toggle recurring closure. Updates apply instantly without reload.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3 pt-0">
-          <div className="grid grid-cols-7 gap-2 sm:gap-3">
-            {ALL_DAYS.map((day) => {
-              const isClosed = weeklyOff.includes(day.key);
-              return (
-                <button
-                  key={day.key}
-                  type="button"
-                  onClick={() => toggleWeeklyOff(day.key)}
-                  className={`
-                    flex flex-col items-center justify-center py-2.5 px-2 rounded-lg border transition-all text-center
-                    ${isClosed
-                      ? "bg-foreground text-background border-foreground font-bold shadow-xs hover:opacity-90"
-                      : "bg-card text-foreground border-border hover:bg-accent/60"
-                    }
-                  `}
-                >
-                  <span className="text-xs font-semibold">{day.short}</span>
-                  <span
-                    className={`text-[10px] font-bold tracking-wider mt-1 uppercase ${
-                      isClosed ? "text-background" : "text-emerald-500"
-                    }`}
-                  >
-                    {isClosed ? "CLOSED" : "OPEN"}
-                  </span>
-                </button>
-              );
-            })}
+            <Badge variant="outline" className="border-amber-500/40 text-amber-500 bg-amber-500/10 text-xs">
+              Automatic Intake Cut-off
+            </Badge>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-3 border-t">
-            <Info className="h-4 w-4 shrink-0 text-muted-foreground/70" />
-            <span>
-              Closed days will automatically reflect on the customer storefront as &ldquo;Kitchen Weekly Off&rdquo;.
-            </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="rounded-lg border border-border/60 bg-background/80 p-3 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-rose-500">
+                <ShoppingBag className="h-4 w-4" />
+                <span>1. The Day Before the Holiday (Order Intake Closed)</span>
+              </div>
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                For example, if <strong>20th October (Dussehra)</strong> is marked as a holiday, customer ordering on the website is <strong>automatically closed on 19th October</strong>. No orders are accepted.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border/60 bg-background/80 p-3 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-500">
+                <Truck className="h-4 w-4" />
+                <span>2. On the Holiday (Kitchen &amp; Admins 100% Free)</span>
+              </div>
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                On <strong>20th October</strong>, because zero orders were taken the day before, <strong>no food is cooked and no dispatches occur</strong>. Kitchen staff and admins enjoy a completely work-free holiday!
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 2. Interactive Month Calendar Card */}
+      {/* ── 2. Interactive Month Calendar Card ── */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -343,7 +338,7 @@ export default function HolidaysPage() {
                   {format(currentMonth, "MMMM yyyy")}
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Click any date to schedule a holiday closure or view details
+                  Click any date to schedule a holiday or view its pre-order cut-off impact
                 </CardDescription>
               </div>
             </div>
@@ -377,10 +372,6 @@ export default function HolidaysPage() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-
-              <Button size="sm" onClick={() => openCreate()}>
-                <Plus className="mr-1.5 h-4 w-4" /> Add Holiday
-              </Button>
             </div>
           </div>
         </CardHeader>
@@ -403,6 +394,7 @@ export default function HolidaysPage() {
               const isOff = weeklyOff.includes(dayKey);
               const dateStr = format(day, "yyyy-MM-dd");
               const holiday = holidayMap.get(dateStr);
+              const eveHoliday = eveOfHolidayMap.get(dateStr);
 
               // Days outside current month
               if (!inCurrentMonth) {
@@ -436,7 +428,7 @@ export default function HolidaysPage() {
                           {format(day, "d")}
                         </span>
                       )}
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500/80">
                         OFF
                       </span>
                     </div>
@@ -454,8 +446,8 @@ export default function HolidaysPage() {
                         <Pencil className="h-3 w-3 shrink-0 opacity-70" />
                       </div>
                     ) : (
-                      <div className="text-[10px] text-muted-foreground/40 italic">
-                        Weekly Off
+                      <div className="text-[10px] text-muted-foreground/60 font-medium">
+                        Weekly Off (Dispatch Closed)
                       </div>
                     )}
                   </div>
@@ -467,7 +459,13 @@ export default function HolidaysPage() {
                 <div
                   key={idx}
                   onClick={() => handleCellClick(day, false, holiday)}
-                  className="border-r border-b min-h-24 sm:min-h-28 p-2 bg-card hover:bg-accent/40 cursor-pointer flex flex-col justify-between group transition-colors"
+                  className={`border-r border-b min-h-24 sm:min-h-28 p-2 cursor-pointer flex flex-col justify-between group transition-colors ${
+                    holiday
+                      ? "bg-rose-500/10 hover:bg-rose-500/15"
+                      : eveHoliday
+                      ? "bg-amber-500/10 hover:bg-amber-500/15"
+                      : "bg-card hover:bg-accent/40"
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     {isCurrentDay ? (
@@ -480,24 +478,38 @@ export default function HolidaysPage() {
                       </span>
                     )}
 
-                    {!holiday && (
+                    {!holiday && !eveHoliday && (
                       <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-muted-foreground font-medium">
-                        + Add
+                        + Holiday
                       </span>
                     )}
                   </div>
 
+                  {/* Holiday Display */}
                   {holiday ? (
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
                         openEdit(holiday);
                       }}
-                      className="mt-1 w-full rounded border border-destructive/40 bg-destructive/15 px-2 py-1 text-xs font-medium text-destructive flex items-center justify-between gap-1 shadow-xs hover:bg-destructive/25 transition-colors"
-                      title={`Holiday: ${holiday.reason}`}
+                      className="mt-1 w-full rounded-md border border-rose-500/40 bg-rose-500/20 px-2 py-1.5 text-xs font-bold text-rose-400 flex items-center justify-between gap-1 shadow-xs hover:bg-rose-500/30 transition-colors"
+                      title={`Holiday: ${holiday.reason}. Kitchen & dispatches closed today.`}
                     >
-                      <span className="truncate">{holiday.reason}</span>
+                      <div className="truncate">
+                        <span className="block truncate font-bold">🏖️ {holiday.reason}</span>
+                        <span className="text-[10px] font-medium opacity-80 block">Kitchen Free</span>
+                      </div>
                       <Pencil className="h-3 w-3 shrink-0 opacity-70" />
+                    </div>
+                  ) : eveHoliday ? (
+                    <div
+                      className="mt-1 w-full rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-1 text-[11px] font-semibold text-amber-400 space-y-0.5"
+                      title={`Order Intake is closed today because tomorrow is a holiday (${eveHoliday.reason}).`}
+                    >
+                      <span className="block truncate">🛑 Intake Closed</span>
+                      <span className="text-[10px] font-normal text-muted-foreground block truncate">
+                        (Holiday tomorrow)
+                      </span>
                     </div>
                   ) : (
                     <div className="h-4" />
@@ -509,21 +521,26 @@ export default function HolidaysPage() {
         </CardContent>
       </Card>
 
-      {/* 3. Scheduled Special Closures List */}
+      {/* ── 3. Scheduled Closures Table ── */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Scheduled Special Closures ({sortedHolidays.length})
-            </CardTitle>
+            <div>
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Scheduled Festival Closures ({sortedHolidays.length})
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Every holiday automatically pauses customer order intake on the preceding day.
+              </CardDescription>
+            </div>
             {sortedHolidays.length > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => openCreate()}
-                className="h-7 text-xs"
+                className="h-8 text-xs"
               >
-                <Plus className="mr-1 h-3.5 w-3.5" /> Add New
+                <Plus className="mr-1 h-3.5 w-3.5" /> Add New Holiday
               </Button>
             )}
           </div>
@@ -532,7 +549,7 @@ export default function HolidaysPage() {
           {sortedHolidays.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center text-muted-foreground">
               <CalendarOff className="h-8 w-8 text-muted-foreground/30 mb-2" />
-              <p className="text-sm font-medium">No special holiday closures scheduled</p>
+              <p className="text-sm font-medium">No festival holiday closures scheduled</p>
               <p className="text-xs text-muted-foreground/80 mt-0.5">
                 Click any operating date on the calendar above or use the &ldquo;Add Holiday&rdquo; button.
               </p>
@@ -541,54 +558,72 @@ export default function HolidaysPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Day</TableHead>
-                  <TableHead>Reason</TableHead>
+                  <TableHead>Holiday Date (Kitchen Free)</TableHead>
+                  <TableHead>Intake Closed Date (Eve)</TableHead>
+                  <TableHead>Occasion / Reason</TableHead>
+                  <TableHead>Operating Impact</TableHead>
                   <TableHead className="w-24 text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedHolidays.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-destructive shrink-0" />
-                        <span>{formatDate(h.date)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-xs uppercase font-medium">
-                      {format(new Date(h.date + "T00:00:00"), "EEEE")}
-                    </TableCell>
-                    <TableCell>{h.reason}</TableCell>
-                    <TableCell className="text-right pr-4">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openEdit(h)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteId(h.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {sortedHolidays.map((h) => {
+                  let eveDateStr = "";
+                  try {
+                    const d = new Date(h.date + "T12:00:00");
+                    eveDateStr = format(subDays(d, 1), "EEE, d MMM yyyy");
+                  } catch {}
+
+                  return (
+                    <TableRow key={h.id}>
+                      <TableCell className="font-semibold text-foreground">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                          <span>{formatDate(h.date)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs font-medium">
+                        <span className="text-amber-400 font-semibold">{eveDateStr}</span>
+                      </TableCell>
+                      <TableCell className="font-medium text-foreground">
+                        {h.reason}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-rose-500/40 text-rose-500 bg-rose-500/10 text-[11px]">
+                          Zero Cooking · Zero Deliveries
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => openEdit(h)}
+                            title="Edit Holiday"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteId(h.id)}
+                            title="Delete Holiday"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Add / Edit Holiday Dialog */}
+      {/* ── Add / Edit Holiday Dialog ── */}
       <Dialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -598,16 +633,18 @@ export default function HolidaysPage() {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editHoliday ? "Edit Holiday" : "Add Holiday"}</DialogTitle>
-            <DialogDescription>
-              {editHoliday
-                ? "Update the scheduled restaurant closure."
-                : "Schedule a restaurant closure date."}
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              <span>{editHoliday ? "Edit Festival Holiday" : "Schedule Festival Holiday"}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Configure a holiday date when the kitchen does not cook or dispatch orders.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="hol-date">Date</Label>
+              <Label htmlFor="hol-date" className="text-xs font-semibold">Holiday Date (When Kitchen is Free)</Label>
               <Input
                 id="hol-date"
                 type="date"
@@ -616,18 +653,40 @@ export default function HolidaysPage() {
                 required
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="hol-reason">Reason</Label>
+              <Label htmlFor="hol-reason" className="text-xs font-semibold">Occasion / Reason</Label>
               <Input
                 id="hol-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 required
-                placeholder="e.g. Dashain Festival, Kitchen Maintenance"
+                placeholder="e.g. Dussehra Festival, Kitchen Maintenance, Diwali"
                 autoFocus
               />
             </div>
-            <DialogFooter>
+
+            {/* Live 1-Day Advance Pre-order Explainer Card */}
+            {formPreview && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-2">
+                <div className="flex items-center gap-1.5 font-bold text-foreground">
+                  <Info className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span>1-Day Pre-Order Impact Preview</span>
+                </div>
+                <div className="space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  <div className="flex items-start gap-1.5">
+                    <span className="font-bold text-rose-500 shrink-0">🛑 {formPreview.eveFormatted}:</span>
+                    <span>Customer order intake is <strong>automatically closed</strong>. No orders will be received.</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="font-bold text-emerald-500 shrink-0">🏖️ {formPreview.holidayFormatted}:</span>
+                    <span>Kitchen &amp; delivery staff are <strong>100% free</strong>. No cooking or deliveries to handle!</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -637,7 +696,7 @@ export default function HolidaysPage() {
               </Button>
               <Button type="submit" disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editHoliday ? "Update" : "Add Holiday"}
+                {editHoliday ? "Update Holiday" : "Confirm & Save Holiday"}
               </Button>
             </DialogFooter>
           </form>
@@ -653,13 +712,13 @@ export default function HolidaysPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete holiday closure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This holiday closure will be permanently removed. The restaurant will be considered open on this day unless it falls on a weekly off.
+            <AlertDialogTitle>Delete Scheduled Holiday?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-relaxed">
+              Are you sure you want to remove this holiday? Customer order intake on the day before and cooking on the holiday date will immediately revert to normal operating hours.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Keep Holiday</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
