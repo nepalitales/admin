@@ -196,8 +196,8 @@ export default function OrderWindowsPage() {
 
   // Open bulk edit dialog
   const openBulkDialog = () => {
-    // Default to operating days
-    setBulkDays(operatingDays.length > 0 ? [...operatingDays] : [...ALL_DAYS]);
+    // Default to all 7 days
+    setBulkDays([...ALL_DAYS]);
     setBulkEnabled(true);
     setBulkSlots([]);
     setBulkDialogOpen(true);
