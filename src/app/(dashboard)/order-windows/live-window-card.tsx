@@ -152,7 +152,7 @@ export function LiveWindowCard({ onUpdated }: LiveWindowCardProps) {
   const handleExtendSubmit = async () => {
     if (!data) return;
     setSubmitting(true);
-    const toastId = toast.loading("Extending live ordering window & broadcasting...");
+    const toastId = toast.loading("Saving and updating live window...");
 
     try {
       const payload: {
@@ -237,7 +237,7 @@ export function LiveWindowCard({ onUpdated }: LiveWindowCardProps) {
             </div>
 
             <CardDescription className="text-xs text-muted-foreground">
-              Instant zero-load live order window extension. Extends ordering time, expands order caps, and auto-scales delivery slots with instant SSE broadcast.
+              Instant zero-load live order window extension. Extends ordering time, expands order caps, and auto-scales delivery slots with instant live sync.
             </CardDescription>
           </div>
 
@@ -395,7 +395,7 @@ export function LiveWindowCard({ onUpdated }: LiveWindowCardProps) {
 
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <Users className="h-3.5 w-3.5 text-primary" />
-              <span>Broadcasts delta in-memory to all active storefront clients with <strong>0 DB reads</strong>.</span>
+              <span>Updates all active storefront screens in real-time with <strong>0 DB reads</strong>.</span>
             </div>
           </div>
         </CardContent>
@@ -560,12 +560,12 @@ export function LiveWindowCard({ onUpdated }: LiveWindowCardProps) {
               {submitting ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Broadcasting...
+                  Saving...
                 </>
               ) : (
                 <>
                   <Zap className="h-3.5 w-3.5 fill-current" />
-                  Apply & Broadcast Instantly
+                  Save and Update
                 </>
               )}
             </Button>
