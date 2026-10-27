@@ -431,6 +431,60 @@ export async function updateOrderWindowsBulk(data: {
   });
 }
 
+export interface LiveOrderWindowStatus {
+  success: boolean;
+  isLiveOpen: boolean;
+  todayDay: string;
+  todayDateStr: string;
+  currentTimeStr: string;
+  activeWindow: (TimeWindow & { timeFormatted: string }) | null;
+  currentOrdersCount: number;
+  maxOrders: number;
+  remainingCapacity: number;
+  remainingMinutes: number;
+  isCapacityFull: boolean;
+  upcomingWindowToday: (TimeWindow & { timeFormatted: string }) | null;
+  targetDispatchDate: string;
+  dispatchSlotsCount: number;
+  totalDispatchCapacity: number;
+}
+
+export interface ExtendLiveOrderWindowParams {
+  extendMinutes?: number;
+  newEndTime?: string;
+  additionalCap?: number;
+  newMaxOrders?: number;
+  autoExtendDispatchSlots?: boolean;
+  targetDay?: string;
+}
+
+export interface ExtendLiveOrderWindowResponse {
+  success: boolean;
+  message: string;
+  updatedWindow: TimeWindow;
+  previousEndTime: string;
+  previousMaxOrders: number;
+  addedOrders: number;
+  extendedMinutes: number;
+  autoExtendedSlots?: DispatchSlot[];
+  version: string;
+}
+
+export async function getLiveOrderWindowStatus(options?: RequestOptions) {
+  return request<LiveOrderWindowStatus>("/order-windows/live", {
+    ...options,
+    forceRefresh: true,
+  });
+}
+
+export async function extendLiveOrderWindow(data: ExtendLiveOrderWindowParams) {
+  return request<ExtendLiveOrderWindowResponse>("/order-windows/extend-live", {
+    method: "POST",
+    body: JSON.stringify(data),
+    forceRefresh: true,
+  });
+}
+
 // ─── Dispatch Windows & Slots ────────────────────────────────────
 
 export interface DispatchSlot {
