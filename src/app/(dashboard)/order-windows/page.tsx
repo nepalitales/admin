@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatTime12 } from "@/lib/utils";
+import { LiveWindowCard } from "./live-window-card";
 
 const ALL_DAYS = [
   "sunday",
@@ -357,6 +358,9 @@ export default function OrderWindowsPage() {
           Set for All Days
         </Button>
       </div>
+
+      {/* Live Active Order Window Controller */}
+      <LiveWindowCard onUpdated={fetchData} />
 
       {/* Explanatory callout distinguishing Order Windows from Dispatch Windows */}
       <div className="flex items-start gap-2.5 p-3 rounded-xl border border-blue-500/20 bg-blue-500/5 text-xs text-muted-foreground">
